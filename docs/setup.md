@@ -95,7 +95,7 @@ Pair a Bluetooth controller in iOS and use EmulatorJS's control settings to conf
 
 ## Automated start and backup
 
-The included [systemd unit](../systemd/emulator.service) starts the Compose stack only after the NAS mount and Tailscale are online. Install it as root after reviewing paths:
+The included [systemd unit](../systemd/emulator.service) waits for remote filesystems and Tailscale, then runs the configured mount preflight before starting Compose. This keeps it compatible with the `.env` mount path rather than hard-coding a particular NAS location. Install it as root after reviewing paths:
 
 ```bash
 sudo install -m 0644 systemd/emulator.service /etc/systemd/system/emulator.service
