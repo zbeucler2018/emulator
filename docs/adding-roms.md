@@ -10,7 +10,7 @@ games/
     Example Game (USA).sfc
 ```
 
-Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. RomM requires a literal directory before its `{platform}` marker, so Compose mounts the NAS share at `/romm/library/games` and scans `games/<platform>/<game>`. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files.
+Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. Compose mounts the NAS share at RomM's standard `/romm/library/roms` path, so the existing `games/<platform>/<game>` filesystem is scanned as `roms/<platform>/<game>` without moving files. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files.
 
 After copying ROMs, trigger a RomM library scan in the UI. The ROM mount is read-only, so scanning cannot modify the collection. Configure at least one metadata provider in `.env` before the first large scan for richer covers and descriptions.
 

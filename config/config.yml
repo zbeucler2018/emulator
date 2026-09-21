@@ -3,10 +3,6 @@
 
 filesystem:
   skip_hash_calculation: false
-  structure:
-    # RomM needs a literal parent before {platform}. Compose exposes the NAS
-    # share at /romm/library/games, preserving games/GBA/<game> without moves.
-    default: "games/{platform}/{game}"
 
 # Map the existing library's folder names without moving or renaming ROM files.
 system:

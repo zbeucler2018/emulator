@@ -57,9 +57,9 @@ services:
       RETROACHIEVEMENTS_API_KEY: ${RETROACHIEVEMENTS_API_KEY:-}
       STEAMGRIDDB_API_KEY: ${STEAMGRIDDB_API_KEY:-}
     volumes:
-      # Keep the NAS share itself as the bind source, but expose it under the
-      # literal games/ directory required by RomM's library template.
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/games:ro
+      # Keep the NAS share itself as the bind source, exposed at RomM's
+      # built-in Structure A path: /romm/library/roms/{platform}/{game}.
+      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
       - ${ROMM_ASSETS_PATH:?set ROMM_ASSETS_PATH in .env}:/romm/assets
       - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/resources:/romm/resources
       - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/redis:/redis-data

@@ -29,7 +29,7 @@ Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0
 
 | Data | Location | Durability |
 | --- | --- | --- |
-| ROM library | `/mnt/sophia/games/<platform>` | Corsair NAS, mounted read-only in RomM |
+| ROM library | `/mnt/sophia/games/<platform>` → `/romm/library/roms/<platform>` | Corsair NAS, mounted read-only in RomM |
 | RomM assets: native saves, states, screenshots | `/mnt/sophia/games/saves/romm-assets` | Corsair NAS |
 | Asset snapshots | `/mnt/sophia/games/backups/romm-assets` | Corsair NAS |
 | MariaDB, RomM resources, Redis data | `/srv/emulator` | local app host; back up separately |
