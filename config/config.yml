@@ -4,6 +4,24 @@
 filesystem:
   skip_hash_calculation: false
 
+# Keep archives and filesystem sidecars out of the catalogue. ROM files remain
+# untouched on the NAS; these rules only affect what RomM indexes.
+exclude:
+  roms:
+    single_file:
+      extensions:
+        - zip
+      names:
+        - "._*"
+    multi_file:
+      names:
+        - zips
+      parts:
+        names:
+          - "._*"
+        extensions:
+          - zip
+
 # Map the existing library's folder names without moving or renaming ROM files.
 system:
   platforms:
