@@ -1,0 +1,16 @@
+[Unit]
+Description=Private RomM retro gaming stack
+Wants=network-online.target tailscale-online.target
+After=network-online.target tailscale-online.target mnt-games.automount
+RequiresMountsFor=/mnt/games
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/service/repos/emulator
+ExecStartPre=/home/service/repos/emulator/scripts/preflight.sh
+ExecStart=/usr/bin/docker compose --env-file .env up -d --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file .env down
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,73 @@
+name: emulator
+
+services:
+  # Refuses to let the app start when the CIFS share or its marker is absent.
+  # This is intentionally a one-shot dependency, not an optional health hint.
+  mount-guard:
+    image: alpine:3.22
+    restart: "no"
+    environment:
+      GAMES_MOUNT: ${GAMES_MOUNT:?set GAMES_MOUNT in .env}
+      ROM_LIBRARY_PATH: ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}
+      ROMM_ASSETS_PATH: ${ROMM_ASSETS_PATH:?set ROMM_ASSETS_PATH in .env}
+      NAS_SERVER: ${NAS_SERVER:?set NAS_SERVER in .env}
+      NAS_SHARE: ${NAS_SHARE:?set NAS_SHARE in .env}
+      NAS_MARKER: ${NAS_MARKER:-.emulator-nas-marker}
+    volumes:
+      - ${GAMES_MOUNT:?set GAMES_MOUNT in .env}:${GAMES_MOUNT}:ro
+      - ./scripts/mount-check.sh:/usr/local/bin/mount-check:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/mount-check"]
+
+  romm-db:
+    image: ${MARIADB_IMAGE:-mariadb:11.8}
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?set MARIADB_ROOT_PASSWORD in .env}
+      MARIADB_DATABASE: romm
+      MARIADB_USER: romm
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?set MARIADB_PASSWORD in .env}
+    volumes:
+      - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      start_interval: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  romm:
+    image: ${ROMM_IMAGE:-rommapp/romm:latest}
+    restart: unless-stopped
+    depends_on:
+      mount-guard:
+        condition: service_completed_successfully
+      romm-db:
+        condition: service_healthy
+    environment:
+      DB_HOST: romm-db
+      DB_NAME: romm
+      DB_USER: romm
+      DB_PASSWD: ${MARIADB_PASSWORD:?set MARIADB_PASSWORD in .env}
+      ROMM_AUTH_SECRET_KEY: ${ROMM_AUTH_SECRET_KEY:?set ROMM_AUTH_SECRET_KEY in .env}
+      ROMM_BASE_URL: ${ROMM_BASE_URL:?set ROMM_BASE_URL in .env}
+      HASHEOUS_API_ENABLED: "true"
+      SCREENSCRAPER_USER: ${SCREENSCRAPER_USER:-}
+      SCREENSCRAPER_PASSWORD: ${SCREENSCRAPER_PASSWORD:-}
+      RETROACHIEVEMENTS_API_KEY: ${RETROACHIEVEMENTS_API_KEY:-}
+      STEAMGRIDDB_API_KEY: ${STEAMGRIDDB_API_KEY:-}
+    volumes:
+      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library:ro
+      - ${ROMM_ASSETS_PATH:?set ROMM_ASSETS_PATH in .env}:/romm/assets
+      - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/resources:/romm/resources
+      - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/redis:/redis-data
+      - ./config:/romm/config:ro
+    ports:
+      # Only the local Tailscale Serve proxy may reach RomM; no LAN/public bind.
+      - "127.0.0.1:${ROMM_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

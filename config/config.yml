@@ -1,0 +1,33 @@
+# RomM configuration. Everything not listed inherits RomM's defaults.
+# Existing ROM files are read only; scans calculate hashes for reliable matching.
+
+filesystem:
+  skip_hash_calculation: false
+  structure:
+    default: "roms/{platform}/{game}"
+
+scan:
+  priority:
+    region:
+      - us
+      - eu
+      - wor
+      - jp
+    region_mode: prefer_rom_tags
+
+emulatorjs:
+  # Upload each in-game SRAM/flash/EEPROM write rather than waiting for Save & Quit.
+  auto_save_sync: true
+  default_cores:
+    gb: gambatte
+    gbc: gambatte
+    gba: mgba
+    nes: nestopia
+    snes: snes9x
+    n64: mupen64plus_next
+    sms: genesis_plus_gx
+    gamegear: genesis_plus_gx
+    genesis: genesis_plus_gx
+  settings:
+    snes9x:
+      snes9x_region: ntsc

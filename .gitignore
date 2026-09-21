@@ -1,0 +1,11 @@
+.env
+*.env
+!/.env.example
+data/
+mysql/
+resources/
+redis/
+assets/
+backups/
+*.log
+.DS_Store
