@@ -4,7 +4,8 @@
 filesystem:
   skip_hash_calculation: false
   structure:
-    default: "roms/{platform}/{game}"
+    # /romm/library is mounted directly from games/roms, so platforms begin here.
+    default: "{platform}/{game}"
 
 scan:
   priority:
