@@ -1,16 +1,16 @@
 # Adding ROMs
 
-Copy new files into the Corsair NAS under `games/roms/<platform>/`. RomM's default layout is:
+Copy new files into the Corsair NAS under `games/<platform>/`. The deployed layout is:
 
 ```text
-roms/
+games/
   gba/
     Example Game (USA).gba
   snes/
     Example Game (USA).sfc
 ```
 
-Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. RomM scans hashes and metadata, while the configured region preference helps choose a representative result. The Compose stack mounts the configured ROM-library directory directly as RomM's library root, so platform folders begin immediately beneath it. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files.
+Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. RomM requires a literal directory before its `{platform}` marker, so the Compose stack mounts `/mnt/sophia` as the library root and scans `games/<platform>/<game>`. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files.
 
 After copying ROMs, trigger a RomM library scan in the UI. The ROM mount is read-only, so scanning cannot modify the collection. Configure at least one metadata provider in `.env` before the first large scan for richer covers and descriptions.
 

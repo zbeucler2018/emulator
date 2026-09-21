@@ -4,8 +4,9 @@
 filesystem:
   skip_hash_calculation: false
   structure:
-    # /romm/library is the configured library root, so platforms begin here.
-    default: "{platform}/{game}"
+    # RomM needs a literal parent before {platform}. Mounting /mnt/sophia
+    # makes the existing games/GBA/<game> tree explicit without moving ROMs.
+    default: "games/{platform}/{game}"
 
 # Map the existing library's folder names without moving or renaming ROM files.
 system:

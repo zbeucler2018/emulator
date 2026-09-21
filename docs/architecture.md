@@ -8,9 +8,9 @@ iPhone, iPad, or desktop browser
 Ubuntu application host
   ├─ RomM + built-in EmulatorJS (Docker)
   ├─ MariaDB / Redis-compatible cache (local disk)
-  └─ CIFS mount: /mnt/games
+  └─ CIFS mount: /mnt/sophia/games
                 └─ Corsair NAS
-                   ├─ roms/              (read-only to RomM)
+                   ├─ <platform>/         (read-only to RomM)
                    ├─ saves/romm-assets/ (RomM saves + states)
                    └─ backups/romm-assets/snapshots/
 ```
@@ -27,8 +27,8 @@ The RomM container has a read-only ROM mount. It can write only to its assets mo
 
 `scripts/mount-check.sh` verifies all of the following before the stack starts:
 
-- `/mnt/games` exists and is a `cifs` filesystem from the configured Corsair share.
-- `roms/` and `saves/romm-assets/` exist beneath it.
+- `/mnt/sophia/games` exists and is a `cifs` filesystem from the configured Corsair share.
+- `saves/romm-assets/` exists beneath it.
 - a manually-created `.emulator-nas-marker` file exists at its root.
 
 The Compose `mount-guard` repeats a reduced check as a mandatory dependency. The host-side preflight is the authoritative check because it can inspect the CIFS source directly. This prevents a failed mount from becoming an empty local directory that silently accepts writes.
