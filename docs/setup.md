@@ -52,6 +52,12 @@ chmod 600 .env
 
 Set `ROMM_BASE_URL` to the tailnet URL that Tailscale Serve reports. Generate unique values for the three required secrets; the two MariaDB passwords must be different.
 
+Create the replaceable, local application-data directory once. This must be on the Ubuntu host's local filesystem, not the NAS mount:
+
+```bash
+sudo install -d -o "$USER" -g "$(id -gn)" -m 0750 /srv/emulator
+```
+
 Run the validation and start the services:
 
 ```bash
