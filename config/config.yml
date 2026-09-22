@@ -31,6 +31,10 @@ system:
     NES: nes
     GameCube: ngc
     PS2: ps2
+    PS3: ps3
+    PSX: psx
+    Wii: wii
+    Xbox: xbox
 
 scan:
   priority:
@@ -57,3 +61,26 @@ emulatorjs:
   settings:
     snes9x:
       snes9x_region: ntsc
+
+# Native-emulator sessions run in the single Webstation container. Browser
+# play remains available on platforms supported by EmulatorJS.
+streaming:
+  enabled: true
+  containers:
+    - protocol: webstation
+      host: https://box.tail71340c.ts.net
+      subfolder: /streaming
+      broker_host: http://romm-webstation:3000
+      library_path: /romm/library
+      label: Emulation station
+      platforms:
+        psx: duckstation
+        ps2:
+          emulator: pcsx2
+          memory_card_sync: true
+        ps3: rpcs3
+        ngc:
+          emulator: dolphin
+          memory_card_sync: true
+        wii: dolphin
+        xbox: xemu

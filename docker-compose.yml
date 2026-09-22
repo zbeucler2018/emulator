@@ -56,6 +56,10 @@ services:
       SCREENSCRAPER_PASSWORD: ${SCREENSCRAPER_PASSWORD:-}
       RETROACHIEVEMENTS_API_KEY: ${RETROACHIEVEMENTS_API_KEY:-}
       STEAMGRIDDB_API_KEY: ${STEAMGRIDDB_API_KEY:-}
+      STREAMING_BROKER_SECRET: ${STREAMING_BROKER_SECRET:?set STREAMING_BROKER_SECRET in .env}
+      STREAMING_LAUNCH_TIMEOUT: ${STREAMING_LAUNCH_TIMEOUT:-600}
+      STREAMING_SAVE_TIMEOUT: ${STREAMING_SAVE_TIMEOUT:-120}
+      STREAMING_STATE_HISTORY_LIMIT: ${STREAMING_STATE_HISTORY_LIMIT:-50}
     volumes:
       # Keep the NAS share itself as the bind source, exposed at RomM's
       # built-in Structure A path: /romm/library/roms/{platform}/{game}.
@@ -73,3 +77,39 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
+
+  # Native-emulator streaming for RomM. The container includes Selkies,
+  # romm-broker, and the supported emulators; it is not a replacement for
+  # RomM's existing EmulatorJS player.
+  romm-webstation:
+    image: ${WEBSTATION_IMAGE:-lscr.io/linuxserver/webstation:romm}
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      mount-guard:
+        condition: service_completed_successfully
+    environment:
+      PUID: ${WEBSTATION_PUID:-1000}
+      PGID: ${WEBSTATION_PGID:-1000}
+      TZ: ${TZ:-America/New_York}
+      SUBFOLDER: /streaming/
+      BROKER_SECRET: ${STREAMING_BROKER_SECRET:?set STREAMING_BROKER_SECRET in .env}
+      AUTO_GPU: "true"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+    volumes:
+      # Persist emulator configuration, firmware, save staging and broker data.
+      - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
+      # Match RomM's existing library path exactly. Game data remains read-only.
+      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+    ports:
+      # Tailscale Serve publishes this at /streaming over the existing HTTPS
+      # hostname; never expose the desktop directly to the LAN.
+      - "127.0.0.1:${WEBSTATION_HTTP_PORT:-3010}:3000"
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${VIDEO_GID:-44}"
+      - "${RENDER_GID:-992}"
+    gpus: all
+    shm_size: "1gb"
