@@ -97,6 +97,10 @@ services:
       AUTO_GPU: "true"
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: all
+      # Keep xemu's mutable console configuration and HDD image in the
+      # persistent Webstation volume, rather than an image-local default.
+      XEMU_TOML: /config/xemu/xemu.toml
+      XEMU_HDD_IMAGE: /config/xemu/xbox_hdd.qcow2
     volumes:
       # Persist emulator configuration, firmware, save staging and broker data.
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
