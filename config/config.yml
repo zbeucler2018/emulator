@@ -68,7 +68,9 @@ streaming:
   enabled: true
   containers:
     - protocol: webstation
-      host: https://box.tail71340c.ts.net
+      # The browser-facing Selkies UI is proxied below RomM's Tailnet origin.
+      # A root URL would load RomM itself in the streaming iframe.
+      host: /streaming
       subfolder: /streaming
       broker_host: http://romm-webstation:3000
       library_path: /romm/library
