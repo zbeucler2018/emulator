@@ -67,14 +67,24 @@ docker compose --env-file .env up -d
 
 ## 3. Publish only inside Tailscale
 
-RomM is deliberately bound to `127.0.0.1:8080`. Configure the private HTTPS proxy with:
+RomM is deliberately bound to `127.0.0.1:8080`; Webstation is deliberately bound to `127.0.0.1:3010`. Configure the private HTTPS proxy with both routes:
 
 ```bash
-tailscale serve 8080
-tailscale serve status
+sudo tailscale serve --https=443 --bg http://127.0.0.1:8080
+sudo tailscale serve --https=443 --set-path=/streaming --bg http://127.0.0.1:3010/streaming
+sudo tailscale serve status
 ```
 
-Tailscale Serve prints the private `https://<machine>.<tailnet>.ts.net` URL. Put that exact URL into `ROMM_BASE_URL` and restart RomM if it changed:
+This produces two tailnet-only HTTPS endpoints:
+
+```text
+https://<machine>.<tailnet>.ts.net/             -> RomM
+https://<machine>.<tailnet>.ts.net/streaming/   -> Webstation/Selkies
+```
+
+The `/streaming` handler must proxy to `http://127.0.0.1:3010/streaming`, including the second `/streaming`. Tailscale removes the matched handler path before proxying; omitting it on the backend target makes Webstation receive `/` and display its default nginx welcome page instead of the streamed desktop.
+
+Put the root URL (without `/streaming`) into `ROMM_BASE_URL` and restart RomM if it changed:
 
 ```bash
 docker compose --env-file .env up -d romm

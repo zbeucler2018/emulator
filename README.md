@@ -1,8 +1,8 @@
 # Emulator
 
-Private, browser-based retro gaming service for a Tailscale network. It deploys [RomM](https://romm.app/) with its built-in EmulatorJS player, reads ROMs from a CIFS-mounted Corsair NAS, and writes RomM's server-side game assets back to that NAS.
+Private retro gaming service for a Tailscale network. It deploys [RomM](https://romm.app/) with its built-in EmulatorJS player and a Webstation native-emulator streaming service, reads ROMs from a CIFS-mounted Corsair NAS, and writes RomM's server-side game assets back to that NAS.
 
-The design deliberately keeps emulation in the browser. The server manages the library, metadata, saves, save states, and backups; it never streams emulator video.
+Older systems continue to run in the browser through EmulatorJS. Webstation streams native emulators for supported heavier systems such as GameCube and PS2, while RomM remains the single frontend.
 
 ## What is included
 
@@ -11,6 +11,7 @@ The design deliberately keeps emulation in the browser. The server manages the l
 - RomM `auto_save_sync`, so EmulatorJS uploads native save changes after the game writes them instead of only at Save & Quit.
 - A rolling, timestamped NAS snapshot job for RomM assets (20 snapshots by default).
 - Tailscale Serve guidance that exposes HTTPS only to the tailnet; the container listens on `127.0.0.1` only.
+- A path-preserving Tailscale Serve route for Webstation at `/streaming/`.
 - Setup, operating, recovery, and ROM-library documentation.
 
 ## Quick start
@@ -20,7 +21,7 @@ The design deliberately keeps emulation in the browser. The server manages the l
 3. Copy `.env.example` to `.env`, fill in your tailnet URL, the NAS server/share values, and generated secrets.
 4. Run `scripts/preflight.sh`; it fails closed if storage is not the expected NAS mount.
 5. Start the stack with `docker compose --env-file .env up -d`.
-6. Configure the tailnet-only HTTPS proxy: `tailscale serve 8080`, then use the URL printed by Tailscale as `ROMM_BASE_URL`.
+6. Configure the tailnet-only HTTPS proxy for both RomM and Webstation as described in [the Tailscale section](docs/setup.md#3-publish-only-inside-tailscale), then use the root URL as `ROMM_BASE_URL`.
 7. Open that URL over Tailscale, complete RomM's first-user wizard, and scan the library.
 
 Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0.0`.
@@ -33,6 +34,7 @@ Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0
 | RomM assets: native saves, states, screenshots | `/mnt/sophia/games/saves/romm-assets` | Corsair NAS |
 | Asset snapshots | `/mnt/sophia/games/backups/romm-assets` | Corsair NAS |
 | MariaDB, RomM resources, Redis data | `/srv/emulator` | local app host; back up separately |
+| Webstation emulator configuration, firmware, and stream state | `/srv/emulator/webstation` | local app host; back up separately |
 
 RomM stores saves and states together under its own per-user/per-ROM asset tree. This is an intentional adaptation of the PRD's separate `saves/` and `states/` directories: RomM needs one asset root to reliably associate both asset types with the user and ROM. The whole asset tree is still on the NAS and included in the save backup snapshots.
 
