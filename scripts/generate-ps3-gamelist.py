@@ -23,10 +23,17 @@ PSF_INDEX = struct.Struct("<HHIII")
 UTF8_FORMAT = 0x0204
 
 # A few installed titles report a data/DLC label in PARAM.SFO even though the
-# directory contains the base game's executable. Keep these presentation-only
-# corrections here; the serial and game files are never changed.
+# directory contains the base game's executable. Entries can also name a
+# verified standalone PKG. Keep these presentation-only corrections here; the
+# serial and game files are never changed.
 TITLE_OVERRIDES = {
-    "digital_games/BLUS30464": "Skate 3",
+    "digital_games/BLUS30464": ("Skate 3", "BLUS30464"),
+    # The package's local header names content ID
+    # UP0006-NPUB30569_00-DS1HDDNAEFS00001 (Dead Space, US PSN release).
+    "digital_games/JpnzMoXYQxLVoDQuYjTLkRaBMTwvKkRUpTPFZPObbAVkNQgBbGqlAMtQmcChmbokRQeHvcnocHDqdrGNpbYVKYpuQXPBSSZurxive.pkg": (
+        "Dead Space",
+        "NPUB30569",
+    ),
 }
 
 
@@ -111,9 +118,18 @@ def find_games(platform_dir: Path) -> tuple[dict[Path, tuple[str, str]], int]:
                 title = fields.get("TITLE", "").strip()
                 serial = fields.get("TITLE_ID", "").strip()
                 if title:
-                    title = TITLE_OVERRIDES.get(relative_game_dir.as_posix(), title)
+                    title, serial = TITLE_OVERRIDES.get(
+                        relative_game_dir.as_posix(), (title, serial)
+                    )
                     games[relative_game_dir] = (title, serial)
                     break
+    # Packages are valid RPCS3 installers. They have no PARAM.SFO until the
+    # first launch installs them, so only explicitly verified package entries
+    # belong in the local metadata sidecar.
+    for relative_path, metadata in TITLE_OVERRIDES.items():
+        path = Path(relative_path)
+        if path.suffix.lower() == ".pkg" and (platform_dir / path).is_file():
+            games[path] = metadata
     return games, metadata_only
 
 
