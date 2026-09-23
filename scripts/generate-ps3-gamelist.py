@@ -22,6 +22,13 @@ PSF_HEADER = struct.Struct("<4sIIII")
 PSF_INDEX = struct.Struct("<HHIII")
 UTF8_FORMAT = 0x0204
 
+# A few installed titles report a data/DLC label in PARAM.SFO even though the
+# directory contains the base game's executable. Keep these presentation-only
+# corrections here; the serial and game files are never changed.
+TITLE_OVERRIDES = {
+    "digital_games/BLUS30464": "Skate 3",
+}
+
 
 def read_sfo(path: Path) -> dict[str, str]:
     """Read UTF-8 string fields from a PS3 PARAM.SFO without external tools."""
@@ -55,9 +62,24 @@ def read_sfo(path: Path) -> dict[str, str]:
     return values
 
 
-def find_games(platform_dir: Path) -> dict[Path, tuple[str, str]]:
-    """Map each category/game directory to its title and PS3 serial."""
+def boot_file(game_dir: Path) -> Path | None:
+    """Return the supported executable for a folder title, if it has one."""
+    # Digital RPCS3 installs and decrypted disc dumps use these two layouts.
+    # A PARAM.SFO by itself can describe DLC or game-data and is not launchable.
+    for candidate in (
+        game_dir / "USRDIR" / "EBOOT.BIN",
+        game_dir / "PS3_GAME" / "USRDIR" / "EBOOT.BIN",
+        game_dir / "EBOOT.BIN",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def find_games(platform_dir: Path) -> tuple[dict[Path, tuple[str, str]], int]:
+    """Map launchable category/game directories to their title and PS3 serial."""
     games: dict[Path, tuple[str, str]] = {}
+    metadata_only = 0
     # Do not recursively walk a full PS3 install: it can contain millions of
     # files on a network share. The library shape guarantees a title directory
     # immediately under each category. Digital installs keep PARAM.SFO in that
@@ -69,6 +91,14 @@ def find_games(platform_dir: Path) -> dict[Path, tuple[str, str]]:
             if not game_dir.is_dir():
                 continue
             relative_game_dir = game_dir.relative_to(platform_dir)
+            if boot_file(game_dir) is None:
+                # Keep reporting only folders with metadata: unrelated helper
+                # directories should not make the report noisy.
+                if (game_dir / "PARAM.SFO").is_file() or (
+                    game_dir / "PS3_GAME" / "PARAM.SFO"
+                ).is_file():
+                    metadata_only += 1
+                continue
             candidates = (game_dir / "PARAM.SFO", game_dir / "PS3_GAME" / "PARAM.SFO")
             for sfo in candidates:
                 if not sfo.is_file():
@@ -81,9 +111,10 @@ def find_games(platform_dir: Path) -> dict[Path, tuple[str, str]]:
                 title = fields.get("TITLE", "").strip()
                 serial = fields.get("TITLE_ID", "").strip()
                 if title:
+                    title = TITLE_OVERRIDES.get(relative_game_dir.as_posix(), title)
                     games[relative_game_dir] = (title, serial)
                     break
-    return games
+    return games, metadata_only
 
 
 def build_xml(games: dict[Path, tuple[str, str]]) -> ElementTree:
@@ -112,12 +143,14 @@ def main() -> int:
     if not platform_dir.is_dir():
         parser.error(f"not a directory: {platform_dir}")
     output = args.output or platform_dir / "gamelist.xml"
-    games = find_games(platform_dir)
+    games, metadata_only = find_games(platform_dir)
     if not games:
         print("no titled PARAM.SFO files found", file=sys.stderr)
         return 1
 
-    print(f"found {len(games)} PS3 titles")
+    print(f"found {len(games)} launchable PS3 titles")
+    if metadata_only:
+        print(f"skipped {metadata_only} metadata-only PS3 folders")
     if args.dry_run:
         for path, (title, serial) in sorted(games.items()):
             print(f"{path}: {title} ({serial or 'no title ID'})")

@@ -22,6 +22,33 @@ exclude:
     multi_file:
       names:
         - zips
+        # PS3 folders with PARAM.SFO but no EBOOT.BIN are DLC, patch, or
+        # installation data rather than games that RPCS3 can launch. These
+        # exact current-library entries stay on the NAS but do not appear as
+        # playable RomM titles.
+        - BCUS98123DATA2
+        - BLUS30464_INSTALL
+        - BLUS30501-GD
+        - BLUS30650INSTALL
+        - BLUS30738
+        - BLUS31176
+        - BLUS31428
+        - NPIA00005DATA
+        # Additional legacy/install folders with neither a boot executable nor
+        # title metadata. Keeping them out of the scan prevents a stream
+        # action that would inevitably return "no bootable file found".
+        - far_cry_3
+        - NPUA80665
+        - NPUB30035
+        - NPUB30065
+        - NPUB30643
+        - NPUB30702
+        - NPUB30742
+        - NPUB31254
+        - NPUB31257
+        - NPUP00030
+        - NPUP00030CACHE
+        - NPUP10028
       parts:
         names:
           - "._*"

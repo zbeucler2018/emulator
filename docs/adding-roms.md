@@ -27,8 +27,11 @@ python3 scripts/generate-ps3-gamelist.py /mnt/sophia/games/PS3
 ```
 
 This creates only `PS3/gamelist.xml`; it never moves, renames, extracts, or
-edits game files. Review the dry-run output first. For future refreshes, use
-`--force` only after reviewing the generated titles, then run a PS3 library
-scan with the local `gamelist` metadata source enabled.
+edits game files. It lists only folder titles with an `EBOOT.BIN` in a supported
+digital-install or disc-dump layout, so DLC and game-data folders that merely
+have a `PARAM.SFO` do not become unlaunchable RomM entries. Review the dry-run
+output first. For future refreshes, use `--force` only after reviewing the
+generated titles, then run a PS3 library scan with the local `gamelist`
+metadata source enabled.
 
 For firmware a core requires, use RomM's Firmware area rather than placing BIOS files beside ordinary ROMs. Keep legal ownership and applicable law in mind for every ROM and firmware image.
