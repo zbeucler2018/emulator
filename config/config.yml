@@ -3,6 +3,12 @@
 
 filesystem:
   skip_hash_calculation: false
+  structure:
+    # Most platforms are direct children of roms/{platform}. PS3 keeps
+    # different source categories (digital, disc, licenses) one level above
+    # its actual title directories.
+    default: "roms/{platform}/{game}"
+    ps3: "roms/{platform}/{category}/{game}"
 
 # Keep archives and filesystem sidecars out of the catalogue. ROM files remain
 # untouched on the NAS; these rules only affect what RomM indexes.
