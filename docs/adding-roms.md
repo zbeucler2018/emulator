@@ -34,16 +34,11 @@ output first. For future refreshes, use `--force` only after reviewing the
 generated titles, then run a PS3 library scan with the local `gamelist`
 metadata source enabled.
 
-Installed RPCS3 title folders (`<title>/USRDIR/EBOOT.BIN`) need an alias in
-Webstation's persistent `dev_hdd0/game` directory before RPCS3 can boot them.
-This creates symlinks only—never a second game copy:
-
-```bash
-python3 scripts/link-rpcs3-installed-games.py /mnt/sophia/games/PS3 \
-  /srv/emulator/webstation/.config/rpcs3/dev_hdd0/game --dry-run
-sudo python3 scripts/link-rpcs3-installed-games.py /mnt/sophia/games/PS3 \
-  /srv/emulator/webstation/.config/rpcs3/dev_hdd0/game
-```
+Installed RPCS3 title folders (`<title>/USRDIR/EBOOT.BIN`) are exposed
+read-only to Webstation directly at RPCS3's `dev_hdd0/game` location by the
+compose bind mount. Do not copy or symlink them into the Webstation config:
+RPCS3's command-line loader resolves symlinks and misclassifies those titles as
+disc games.
 
 If aliases were created before the container-path option was introduced, rerun
 the command once with `--replace-host-targets`; it replaces only symlinks that

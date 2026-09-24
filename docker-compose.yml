@@ -109,6 +109,10 @@ services:
       - ./config/webstation-overrides:/config/overrides:ro
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+      # RPCS3 must see installed digital titles directly in its dev_hdd0/game
+      # tree. A bind mount (rather than symlinks) prevents RPCS3's CLI from
+      # resolving the title back to the library and misclassifying it as a disc.
+      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games:/config/.config/rpcs3/dev_hdd0/game:ro
     ports:
       # Tailscale Serve publishes this at /streaming over the existing HTTPS
       # hostname; never expose the desktop directly to the LAN.
