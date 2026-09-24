@@ -75,6 +75,13 @@ exclude:
         - NPUP00030
         - NPUP00030CACHE
         - NPUP10028
+        # PS3 tools and discontinued online-service clients are not game
+        # launches. Keep their files intact but remove them from the library.
+        - BLES80608
+        - NP0APOLLO
+        - NPIA00005
+        - NPIA00025
+        - NPIA09002
       parts:
         names:
           - "._*"

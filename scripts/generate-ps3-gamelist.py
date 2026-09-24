@@ -133,7 +133,7 @@ def find_games(platform_dir: Path) -> tuple[dict[Path, tuple[str, str]], int]:
     return games, metadata_only
 
 
-def build_xml(games: dict[Path, tuple[str, str]]) -> ElementTree:
+def build_xml(platform_dir: Path, games: dict[Path, tuple[str, str]]) -> ElementTree:
     root = Element("gameList")
     for game_dir, (title, serial) in sorted(games.items(), key=lambda item: item[1][0].casefold()):
         game = SubElement(root, "game")
@@ -142,6 +142,15 @@ def build_xml(games: dict[Path, tuple[str, str]]) -> ElementTree:
         SubElement(game, "sortname").text = title
         if serial:
             SubElement(game, "desc").text = f"PlayStation 3 title ID: {serial}"
+        # Prefer the title's own icon as a local, offline cover fallback. Disc
+        # dumps keep it in PS3_GAME; installed titles keep it at their root.
+        for icon in (
+            platform_dir / game_dir / "ICON0.PNG",
+            platform_dir / game_dir / "PS3_GAME" / "ICON0.PNG",
+        ):
+            if icon.is_file():
+                SubElement(game, "cover").text = f"./{icon.relative_to(platform_dir).as_posix()}"
+                break
     tree = ElementTree(root)
     indent(tree, space="  ")
     return tree
@@ -174,7 +183,7 @@ def main() -> int:
     if output.exists() and not args.force:
         parser.error(f"refusing to overwrite existing {output}; use --force after review")
 
-    tree = build_xml(games)
+    tree = build_xml(platform_dir, games)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("wb", dir=output.parent, delete=False) as temp:
         temp_path = Path(temp.name)
