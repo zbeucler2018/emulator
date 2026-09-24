@@ -22,17 +22,43 @@ exclude:
     multi_file:
       names:
         - zips
-        # PS3 folders with PARAM.SFO but no EBOOT.BIN are DLC, patch, or
-        # installation data rather than games that RPCS3 can launch. These
-        # exact current-library entries stay on the NAS but do not appear as
-        # playable RomM titles.
+        # PS3 `CATEGORY=GD` folders are installed disc-game data/updates, not
+        # independently bootable games. They remain on the NAS for RPCS3 to
+        # use with their matching disc dump, but are never offered as RomM
+        # launch targets.
+        - BCUS98103
+        - BCUS98123
         - BCUS98123DATA2
+        - BLUS30089
+        - BLUS30244
+        - BLUS30377
+        - BLUS30464
         - BLUS30464_INSTALL
+        - BLUS30501
         - BLUS30501-GD
+        - BLUS30537
+        - BLUS30540
+        - BLUS30546
+        - BLUS30566
+        - BLUS30591
+        - BLUS30650
         - BLUS30650INSTALL
+        - BLUS30719
         - BLUS30738
+        - BLUS30762
+        - BLUS30791
+        - BLUS30838
+        - BLUS30973
+        - BLUS30991
+        - BLUS31003
+        - BLUS31011
+        - BLUS31159
         - BLUS31176
+        - BLUS31178
+        - BLUS31270
         - BLUS31428
+        - BLUS31436
+        - BLUS31466
         - NPIA00005DATA
         # Additional legacy/install folders with neither a boot executable nor
         # title metadata. Keeping them out of the scan prevents a stream
