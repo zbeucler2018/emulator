@@ -109,42 +109,10 @@ services:
       - ./config/webstation-overrides:/config/overrides:ro
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
-      # RPCS3 needs its game root writable for locks and game-data saves, but
-      # installed digital titles must appear as direct children of that root.
-      # Mount each verified title read-only; this retains one canonical NAS
-      # copy without making RPCS3's mutable game directory read-only.
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BCUS98103:/config/.config/rpcs3/dev_hdd0/game/BCUS98103:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BCUS98123:/config/.config/rpcs3/dev_hdd0/game/BCUS98123:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLES80608:/config/.config/rpcs3/dev_hdd0/game/BLES80608:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30089:/config/.config/rpcs3/dev_hdd0/game/BLUS30089:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30244:/config/.config/rpcs3/dev_hdd0/game/BLUS30244:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30377:/config/.config/rpcs3/dev_hdd0/game/BLUS30377:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30464:/config/.config/rpcs3/dev_hdd0/game/BLUS30464:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30501:/config/.config/rpcs3/dev_hdd0/game/BLUS30501:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30537:/config/.config/rpcs3/dev_hdd0/game/BLUS30537:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30540:/config/.config/rpcs3/dev_hdd0/game/BLUS30540:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30546:/config/.config/rpcs3/dev_hdd0/game/BLUS30546:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30566:/config/.config/rpcs3/dev_hdd0/game/BLUS30566:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30591:/config/.config/rpcs3/dev_hdd0/game/BLUS30591:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30650:/config/.config/rpcs3/dev_hdd0/game/BLUS30650:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30719:/config/.config/rpcs3/dev_hdd0/game/BLUS30719:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30762:/config/.config/rpcs3/dev_hdd0/game/BLUS30762:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30791:/config/.config/rpcs3/dev_hdd0/game/BLUS30791:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30838:/config/.config/rpcs3/dev_hdd0/game/BLUS30838:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30973:/config/.config/rpcs3/dev_hdd0/game/BLUS30973:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS30991:/config/.config/rpcs3/dev_hdd0/game/BLUS30991:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31003:/config/.config/rpcs3/dev_hdd0/game/BLUS31003:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31011:/config/.config/rpcs3/dev_hdd0/game/BLUS31011:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31159:/config/.config/rpcs3/dev_hdd0/game/BLUS31159:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31178:/config/.config/rpcs3/dev_hdd0/game/BLUS31178:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31270:/config/.config/rpcs3/dev_hdd0/game/BLUS31270:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31436:/config/.config/rpcs3/dev_hdd0/game/BLUS31436:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/BLUS31466:/config/.config/rpcs3/dev_hdd0/game/BLUS31466:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/NP0APOLLO:/config/.config/rpcs3/dev_hdd0/game/NP0APOLLO:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/NPIA00005:/config/.config/rpcs3/dev_hdd0/game/NPIA00005:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/NPIA00025:/config/.config/rpcs3/dev_hdd0/game/NPIA00025:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/NPIA09002:/config/.config/rpcs3/dev_hdd0/game/NPIA09002:ro
-      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games/NPUA30073:/config/.config/rpcs3/dev_hdd0/game/NPUA30073:ro
+      # RPCS3 must see installed digital titles directly in its dev_hdd0/game
+      # tree. A bind mount (rather than symlinks) prevents RPCS3's CLI from
+      # resolving the title back to the library and misclassifying it as a disc.
+      - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/PS3/digital_games:/config/.config/rpcs3/dev_hdd0/game:ro
     ports:
       # Tailscale Serve publishes this at /streaming over the existing HTTPS
       # hostname; never expose the desktop directly to the LAN.
