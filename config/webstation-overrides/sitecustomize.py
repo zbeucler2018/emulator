@@ -1,8 +1,8 @@
-"""Webstation startup hook for RPCS3 installed titles in the ROM library.
+"""Webstation startup hook for ROM-library copies of RPCS3 installed titles.
 
-RPCS3 accepts installed titles only below its own dev_hdd0/game tree. Docker
-bind-mounts the read-only PS3/digital_games library at that path, so the broker
-uses the installed-title route while preserving the one canonical game copy.
+RPCS3 accepts installed titles only below its own dev_hdd0/game tree. The
+library keeps those titles read-only under PS3/digital_games, so persistent
+host-side symlinks expose them at the required path without a second copy.
 """
 
 from pathlib import Path
