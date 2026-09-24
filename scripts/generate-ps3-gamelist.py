@@ -36,6 +36,72 @@ TITLE_OVERRIDES = {
     ),
 }
 
+# Offline presentation metadata for the titles currently verified in this
+# library.  This is deliberately small and explicit: folders that are merely
+# PS3 game-data or updates must never acquire metadata that makes them look
+# launchable.  All values are local gamelist fields and can be replaced by a
+# configured online provider later.
+METADATA_OVERRIDES = {
+    "BLUS30089": {
+        "desc": "An action-adventure game set during the Third Crusade, following Altaïr Ibn-La'Ahad.",
+        "releasedate": "20071113T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, Adventure",
+        "players": "1",
+    },
+    "NPUB30569": {
+        "desc": "A survival-horror game aboard the mining ship USG Ishimura, starring engineer Isaac Clarke.",
+        "releasedate": "20081014T000000",
+        "developer": "EA Redwood Shores",
+        "publisher": "Electronic Arts",
+        "genre": "Survival horror, Shooter",
+        "players": "1",
+    },
+    "NPUA30073": {
+        "desc": "A cooperative first-person shooter built around replayable heists.",
+        "releasedate": "20111018T000000",
+        "developer": "OVERKILL Software",
+        "publisher": "Sony Online Entertainment",
+        "genre": "First-person shooter",
+        "players": "1-4",
+    },
+    "BLES80608": {
+        "desc": "multiMAN's compatibility mode: a PlayStation 3 homebrew game and content manager.",
+        "developer": "deank",
+        "genre": "Utility",
+    },
+    "NP0APOLLO": {
+        "desc": "A PlayStation 3 homebrew save-game manager.",
+        "developer": "bucanero",
+        "genre": "Utility",
+    },
+    "NPIA00005": {
+        "desc": "Sony's discontinued PlayStation 3 social virtual-world client.",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Service",
+    },
+    "NPIA00025": {
+        "desc": "Sony's PlayStation 3 digital-storefront client.",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Storefront",
+    },
+    "NPIA09002": {
+        "desc": "Sony's discontinued PlayStation 3 music-streaming client.",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Service",
+    },
+}
+
+# These are sidecar cover assets, never ROM files.  They are kept in a hidden
+# directory under the PS3 platform so RomM can ingest them through gamelist.xml
+# without turning them into library entries.
+COVER_OVERRIDES = {
+    "disk_games/AC": ".romm-assets/covers/assassins-creed.jpg",
+    "digital_games/JpnzMoXYQxLVoDQuYjTLkRaBMTwvKkRUpTPFZPObbAVkNQgBbGqlAMtQmcChmbokRQeHvcnocHDqdrGNpbYVKYpuQXPBSSZurxive.pkg": ".romm-assets/covers/dead-space.jpg",
+    "digital_games/NPUA30073": ".romm-assets/covers/payday-the-heist.jpg",
+}
+
 
 def read_sfo(path: Path) -> dict[str, str]:
     """Read UTF-8 string fields from a PS3 PARAM.SFO without external tools."""
@@ -140,8 +206,17 @@ def build_xml(platform_dir: Path, games: dict[Path, tuple[str, str]]) -> Element
         SubElement(game, "path").text = f"./{game_dir.as_posix()}"
         SubElement(game, "name").text = title
         SubElement(game, "sortname").text = title
-        if serial:
-            SubElement(game, "desc").text = f"PlayStation 3 title ID: {serial}"
+        metadata = METADATA_OVERRIDES.get(serial, {})
+        SubElement(game, "desc").text = metadata.get(
+            "desc", f"PlayStation 3 title ID: {serial}" if serial else ""
+        )
+        for field in ("releasedate", "developer", "publisher", "genre", "players"):
+            if value := metadata.get(field):
+                SubElement(game, field).text = value
+        cover_override = COVER_OVERRIDES.get(game_dir.as_posix())
+        if cover_override and (platform_dir / cover_override).is_file():
+            SubElement(game, "cover").text = f"./{cover_override}"
+            continue
         # Prefer the title's own icon as a local, offline cover fallback. Disc
         # dumps keep it in PS3_GAME; installed titles keep it at their root.
         for icon in (
