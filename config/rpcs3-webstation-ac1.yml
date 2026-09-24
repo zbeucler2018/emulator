@@ -1,0 +1,36 @@
+# Persistent Webstation RPCS3 profile.
+# Mirrors only the host settings relevant to the known-good BLUS30089 launch.
+# It deliberately does not import host saves, firmware, controllers, or game paths.
+Core:
+  PPU Decoder: Recompiler (LLVM)
+  PPU Threads: 2
+  LLVM Precompilation: true
+  Thread Scheduler Mode: Operating System
+  SPU Decoder: Recompiler (LLVM)
+  Preferred SPU Threads: 0
+  SPU loop detection: true
+  SPU Block Size: Safe
+  Accurate SPU Reservations: true
+  SPU Verification: true
+  SPU Cache: true
+
+Video:
+  Renderer: Vulkan
+  Resolution: 1280x720
+  Aspect ratio: 16:9
+  Frame limit: Auto
+  Shader Mode: Async Shader Recompiler
+  Shader Precision: High
+  VSync: false
+  Resolution Scale: 100
+  Driver Wake-Up Delay: 0
+  Vulkan:
+    Adapter: NVIDIA GeForce RTX 4070 Ti
+    Asynchronous Queue Scheduler: Safe
+    VRAM allocation limit (MB): 65536
+    Use Re-BAR for GPU uploads: true
+
+Miscellaneous:
+  Pause emulation on RPCS3 focus loss: false
+  Exit RPCS3 when process finishes: true
+  Automatically start games after boot: true
