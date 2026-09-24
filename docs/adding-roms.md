@@ -34,19 +34,4 @@ output first. For future refreshes, use `--force` only after reviewing the
 generated titles, then run a PS3 library scan with the local `gamelist`
 metadata source enabled.
 
-Installed RPCS3 title folders (`<title>/USRDIR/EBOOT.BIN`) need an alias in
-Webstation's persistent `dev_hdd0/game` directory before RPCS3 can boot them.
-This creates symlinks only—never a second game copy:
-
-```bash
-python3 scripts/link-rpcs3-installed-games.py /mnt/sophia/games/PS3 \
-  /srv/emulator/webstation/.config/rpcs3/dev_hdd0/game --dry-run
-sudo python3 scripts/link-rpcs3-installed-games.py /mnt/sophia/games/PS3 \
-  /srv/emulator/webstation/.config/rpcs3/dev_hdd0/game
-```
-
-If aliases were created before the container-path option was introduced, rerun
-the command once with `--replace-host-targets`; it replaces only symlinks that
-point at the old host-only path.
-
 For firmware a core requires, use RomM's Firmware area rather than placing BIOS files beside ordinary ROMs. Keep legal ownership and applicable law in mind for every ROM and firmware image.

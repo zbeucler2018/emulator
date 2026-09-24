@@ -97,8 +97,6 @@ services:
       AUTO_GPU: "true"
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: all
-      # Load the small RPCS3 installed-title redirect before the broker starts.
-      PYTHONPATH: /config/overrides
       # Keep xemu's mutable console configuration and HDD image in the
       # persistent Webstation volume, rather than an image-local default.
       XEMU_TOML: /config/xemu/xemu.toml
@@ -106,7 +104,6 @@ services:
     volumes:
       # Persist emulator configuration, firmware, save staging and broker data.
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
-      - ./config/webstation-overrides:/config/overrides:ro
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
     ports:
