@@ -20,11 +20,8 @@ try:
         # upstream launch behavior.
         if boot is None or not path.is_dir() or not (path / "USRDIR" / "EBOOT.BIN").is_file():
             return boot
-        # RPCS3's command-line loader treats an EBOOT.BIN argument as a disc
-        # boot, even when it lives inside dev_hdd0/game. Installed digital
-        # titles must instead be passed as their title-directory.
-        installed_title = GAME_DIR / path.name
-        return installed_title if (installed_title / "USRDIR" / "EBOOT.BIN").is_file() else boot
+        alias = GAME_DIR / path.name / "USRDIR" / "EBOOT.BIN"
+        return alias if alias.is_file() else boot
 
     Rpcs3.resolve_rom_file = resolve_rom_file
 except Exception:
