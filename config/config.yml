@@ -13,6 +13,10 @@ filesystem:
 # Keep archives and filesystem sidecars out of the catalogue. ROM files remain
 # untouched on the NAS; these rules only affect what RomM indexes.
 exclude:
+  # Backups live alongside the library but are not a game platform.
+  platforms:
+    - backups
+    - saves
   roms:
     single_file:
       extensions:
@@ -64,14 +68,6 @@ exclude:
         # title metadata. Keeping them out of the scan prevents a stream
         # action that would inevitably return "no bootable file found".
         - far_cry_3
-        - NPUA80665
-        - NPUB30035
-        - NPUB30065
-        - NPUB30643
-        - NPUB30702
-        - NPUB30742
-        - NPUB31254
-        - NPUB31257
         - NPUP00030
         - NPUP00030CACHE
         - NPUP10028
@@ -92,6 +88,7 @@ system:
     PS2: ps2
     PS3: ps3
     PSX: psx
+    PSP: psp
     Wii: wii
     Xbox: xbox
 
@@ -140,6 +137,7 @@ streaming:
           emulator: pcsx2
           memory_card_sync: true
         ps3: rpcs3
+        psp: ppsspp
         ngc:
           emulator: dolphin
           memory_card_sync: true
