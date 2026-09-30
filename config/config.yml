@@ -9,6 +9,9 @@ filesystem:
     # its actual title directories.
     default: "roms/{platform}/{game}"
     ps3: "roms/{platform}/{category}/{game}"
+    # The compose mount exposes the NAS at /romm/library/roms, so firmware
+    # stored on Sophia lives at bios/{platform} beneath that mount.
+    firmware: "roms/bios/{platform}"
 
 # Keep archives and filesystem sidecars out of the catalogue. ROM files remain
 # untouched on the NAS; these rules only affect what RomM indexes.
@@ -21,11 +24,19 @@ exclude:
     single_file:
       extensions:
         - zip
+        - 7z
+        # PS3 PKG/RAP files are installers and licenses, not launchable
+        # titles. Keep them on the NAS for RPCS3, but never catalogue them.
+        - pkg
+        - rap
+        # Helper scripts occasionally live beside converted disc images.
+        - sh
       names:
         - "._*"
     multi_file:
       names:
         - zips
+        - packages
         # PS3 `CATEGORY=GD` folders are installed disc-game data/updates, not
         # independently bootable games. They remain on the NAS for RPCS3 to
         # use with their matching disc dump, but are never offered as RomM
@@ -83,6 +94,7 @@ system:
     GBA: gba
     N64: n64
     NDS: nds
+    N3DS: 3ds
     NES: nes
     GameCube: ngc
     PS2: ps2
@@ -137,6 +149,7 @@ streaming:
           emulator: pcsx2
           memory_card_sync: true
         ps3: rpcs3
+        3ds: azahar
         psp: ppsspp
         ngc:
           emulator: dolphin

@@ -42,6 +42,14 @@ TITLE_OVERRIDES = {
 # launchable.  All values are local gamelist fields and can be replaced by a
 # configured online provider later.
 METADATA_OVERRIDES = {
+    "BLUS30464": {
+        "desc": "An open-world skateboarding game set in Port Carverton, built around creating a skate team and completing challenges.",
+        "releasedate": "20100511T000000",
+        "developer": "EA Black Box",
+        "publisher": "Electronic Arts",
+        "genre": "Sports, Skateboarding",
+        "players": "1-6",
+    },
     "BLUS30089": {
         "desc": "An action-adventure game set during the Third Crusade, following Altaïr Ibn-La'Ahad.",
         "releasedate": "20071113T000000",

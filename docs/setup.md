@@ -84,6 +84,11 @@ https://<machine>.<tailnet>.ts.net/streaming/   -> Webstation/Selkies
 
 The `/streaming` handler must proxy to `http://127.0.0.1:3010/streaming`, including the second `/streaming`. Tailscale removes the matched handler path before proxying; omitting it on the backend target makes Webstation receive `/` and display its default nginx welcome page instead of the streamed desktop.
 
+Do not publish Webstation's container port 3001. RomM 5.3's admin desktop
+session uses the same broker claim and tokenized `/streaming/` room as a game
+session; a separate desktop URL is neither needed nor protected by RomM's
+session ownership.
+
 Put the root URL (without `/streaming`) into `ROMM_BASE_URL` and restart RomM if it changed:
 
 ```bash
@@ -92,7 +97,36 @@ docker compose --env-file .env up -d romm
 
 `tailscale serve` is private to the tailnet. Do **not** substitute `tailscale funnel`, and retain tailnet ACLs for least-privilege access.
 
-## 4. First scan and iPhone test
+## 4. Configure Webstation from RomM
+
+Sign in with an administrator account and open
+`/administration?tab=streaming` (**Administration → Emulator Streaming**).
+In the container fleet, select **Desktop** for **Emulation station**. This
+claims the same single Webstation display used by games and opens RomM's
+`/stream/desktop` view with no game loaded.
+
+Use the **Dolphin Emulator** icon on that desktop. Its launcher and streamed
+game sessions both pass through `scripts/dolphin-mii-wrapper.sh`. The wrapper
+keeps Dolphin's live database at:
+
+```text
+/config/.local/share/dolphin-emu/Wii/shared2/menu/FaceLib/RFL_DB.dat
+```
+
+as a hard link to the persistent shared copy at:
+
+```text
+/config/.romm-shared/dolphin-wii/RFL_DB.dat
+```
+
+On the host that shared copy is
+`/srv/emulator/webstation/.romm-shared/dolphin-wii/RFL_DB.dat`. The broker may
+still clear and restore `Wii/` before each game, preserving per-user/per-game
+save isolation; unlinking the live hard link cannot delete the shared copy.
+The wrapper recreates the link immediately before Dolphin starts and syncs an
+atomic Dolphin rewrite back after it exits.
+
+## 5. First scan and iPhone test
 
 Open the Tailscale Serve URL from iPhone Chrome, Safari, or Firefox. Create the first RomM account (it is the administrator), then scan the library. Test one GBA game first:
 

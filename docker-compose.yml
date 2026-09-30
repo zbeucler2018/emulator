@@ -101,11 +101,23 @@ services:
       # persistent Webstation volume, rather than an image-local default.
       XEMU_TOML: /config/xemu/xemu.toml
       XEMU_HDD_IMAGE: /config/xemu/xbox_hdd.qcow2
+      # The packaged Vulkan stack is incomplete in this WebStation image.
+      # Use the host NVIDIA OpenGL path for broker-launched PCSX2 games.
+      PCSX2_BIN: /opt/romm/bin/pcsx2-opengl-wrapper.sh
+      # Route broker-launched Dolphin through a tiny persistence shim. The
+      # shim keeps the shared Wii Mii database outside the per-game NAND tree
+      # that webstation-broker clears before every restore.
+      DOLPHIN_BIN: /opt/romm/bin/dolphin-mii-wrapper.sh
     volumes:
       # Persist emulator configuration, firmware, save staging and broker data.
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+      - ./scripts/pcsx2-opengl-wrapper.sh:/opt/romm/bin/pcsx2-opengl-wrapper.sh:ro
+      - ./scripts/dolphin-mii-wrapper.sh:/opt/romm/bin/dolphin-mii-wrapper.sh:ro
+      # The desktop icon uses the same shim, so Miis created in an admin
+      # desktop session enter the shared database before the next game launch.
+      - ./config/webstation/dolphin-emu.desktop:/config/Desktop/dolphin-emu.desktop:ro
     ports:
       # Tailscale Serve publishes this at /streaming over the existing HTTPS
       # hostname; never expose the desktop directly to the LAN.

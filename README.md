@@ -12,6 +12,10 @@ Older systems continue to run in the browser through EmulatorJS. Webstation stre
 - A rolling, timestamped NAS snapshot job for RomM assets (20 snapshots by default).
 - Tailscale Serve guidance that exposes HTTPS only to the tailnet; the container listens on `127.0.0.1` only.
 - A path-preserving Tailscale Serve route for Webstation at `/streaming/`.
+- RomM-admin desktop sessions over that same authenticated `/streaming/`
+  route; Webstation's standalone port 3001 stays unpublished.
+- A shared Dolphin Wii Mii database that survives per-game save cleanup while
+  leaving normal RomM Wii save syncing enabled.
 - Setup, operating, recovery, and ROM-library documentation.
 
 ## Quick start
@@ -35,8 +39,16 @@ Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0
 | Asset snapshots | `/mnt/sophia/games/backups/romm-assets` | Corsair NAS |
 | MariaDB, RomM resources, Redis data | `/srv/emulator` | local app host; back up separately |
 | Webstation emulator configuration, firmware, and stream state | `/srv/emulator/webstation` | local app host; back up separately |
+| Shared Dolphin Wii Mii database | `/srv/emulator/webstation/.romm-shared/dolphin-wii/RFL_DB.dat` | local app host; shared by Wii games |
 
 RomM stores saves and states together under its own per-user/per-ROM asset tree. This is an intentional adaptation of the PRD's separate `saves/` and `states/` directories: RomM needs one asset root to reliably associate both asset types with the user and ROM. The whole asset tree is still on the NAS and included in the save backup snapshots.
+
+To configure emulators without launching a game, sign in as a RomM admin and
+open **Administration → Emulator Streaming** (direct path:
+`/administration?tab=streaming`). Select **Desktop** for **Emulation station**.
+RomM claims the container and opens `/stream/desktop`, which uses the existing
+tailnet-only `/streaming/` route. Open the **Dolphin Emulator** desktop icon to
+configure Dolphin or create Miis. Release the desktop session in RomM when done.
 
 ## Operations
 

@@ -41,6 +41,17 @@ This substantially reduces loss risk from closing a tab, but it cannot make a br
 
 If connectivity drops, the browser cache may temporarily contain newer state than the server. Treat the server's visible save-sync timestamp and the NAS backup as the durability signal, not local browser storage.
 
+Webstation's Dolphin broker deliberately clears `StateSaves`, `GC`, and `Wii`
+at every game activation, before restoring the selected RomM save archive.
+This prevents one user's per-game saves leaking into another session, but a
+Wii Mii database is console-wide rather than game-specific. The Dolphin
+launcher therefore hard-links `Wii/shared2/menu/FaceLib/RFL_DB.dat` to
+`/config/.romm-shared/dolphin-wii/RFL_DB.dat`, outside the cleared tree. The
+broker continues to clear and sync every other Wii save normally. Do not set a
+`clears_stale_saves` override in RomM for this deployment: Webstation broker
+0.9.0 already declares and performs the clear, and the wrapper preserves only
+the shared Mii database.
+
 ## Platform baseline
 
 The supplied config selects a conservative core for GB/GBC/GBA, NES, SNES, N64, Master System, Game Gear, and Genesis. RomM/EmulatorJS also has support for the optional Neo Geo Pocket and WonderSwan families. N64 results vary by device and game; it is intentionally the Phase 1 ceiling. Nintendo DS and disc-based platforms are out of scope.

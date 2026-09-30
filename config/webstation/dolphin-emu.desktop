@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Dolphin Emulator
+Comment=Configure Dolphin and the persistent shared Wii Mii database
+Icon=dolphin-emu
+Exec=/opt/romm/bin/dolphin-mii-wrapper.sh
+Terminal=false
+Categories=Game;Emulator;
