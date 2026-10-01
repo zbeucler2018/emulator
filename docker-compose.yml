@@ -94,6 +94,22 @@ services:
       TZ: ${TZ:-America/New_York}
       SUBFOLDER: /streaming/
       BROKER_SECRET: ${STREAMING_BROKER_SECRET:?set STREAMING_BROKER_SECRET in .env}
+      # Prometheus-compatible Selkies metrics remain behind the existing
+      # token-authenticated /streaming/ Tailscale Serve route.
+      SELKIES_ENABLE_METRICS_HTTP: "true"
+      SELKIES_MASTER_TOKEN: ${SELKIES_MASTER_TOKEN:?set SELKIES_MASTER_TOKEN in .env}
+      # WebRTC media is direct UDP; keep its mux port on the Tailscale address
+      # rather than exposing it to the LAN or internet. WebSockets remains
+      # available from the Selkies sidebar as a fallback.
+      SELKIES_MODE: webrtc
+      SELKIES_ENABLE_DUAL_MODE: "true"
+      SELKIES_WEBRTC_UDP_MUX_PORT: ${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}
+      SELKIES_WEBRTC_PUBLIC_IP: ${TAILSCALE_IPV4:?set TAILSCALE_IPV4 in .env}
+      SELKIES_WEBRTC_ICE_LITE: "true"
+      SELKIES_CONGESTION_CONTROL: "true"
+      # Keep Skate 3's RPCS3 game-install cache out of its tiny save archive.
+      ROMM_RPC3_SKATE3_SAVE_FILTER: "true"
+      PYTHONPATH: /opt/romm/overrides
       AUTO_GPU: "true"
       NVIDIA_VISIBLE_DEVICES: all
       NVIDIA_DRIVER_CAPABILITIES: all
@@ -115,6 +131,7 @@ services:
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
       - ./scripts/pcsx2-opengl-wrapper.sh:/opt/romm/bin/pcsx2-opengl-wrapper.sh:ro
       - ./scripts/dolphin-mii-wrapper.sh:/opt/romm/bin/dolphin-mii-wrapper.sh:ro
+      - ./config/webstation/rpcs3-skate3-save-filter.py:/opt/romm/overrides/sitecustomize.py:ro
       # The desktop icon uses the same shim, so Miis created in an admin
       # desktop session enter the shared database before the next game launch.
       - ./config/webstation/dolphin-emu.desktop:/config/Desktop/dolphin-emu.desktop:ro
@@ -122,6 +139,7 @@ services:
       # Tailscale Serve publishes this at /streaming over the existing HTTPS
       # hostname; never expose the desktop directly to the LAN.
       - "127.0.0.1:${WEBSTATION_HTTP_PORT:-3010}:3000"
+      - "${TAILSCALE_IPV4:?set TAILSCALE_IPV4 in .env}:${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}:${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}/udp"
     devices:
       - /dev/dri:/dev/dri
     group_add:
@@ -129,3 +147,19 @@ services:
       - "${RENDER_GID:-992}"
     gpus: all
     shm_size: "1gb"
+
+  # Tailnet-only Prometheus endpoint. The proxy keeps Selkies' privileged
+  # master token inside Docker while allowing a trusted tailnet scraper to use
+  # an ordinary unauthenticated GET /metrics request.
+  selkies-metrics:
+    image: nginx:1.28-alpine
+    restart: unless-stopped
+    depends_on:
+      romm-webstation:
+        condition: service_started
+    environment:
+      SELKIES_MASTER_TOKEN: ${SELKIES_MASTER_TOKEN:?set SELKIES_MASTER_TOKEN in .env}
+    volumes:
+      - ./config/selkies-metrics/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    ports:
+      - "127.0.0.1:${SELKIES_METRICS_HTTP_PORT:-3011}:8080"

@@ -84,6 +84,19 @@ https://<machine>.<tailnet>.ts.net/streaming/   -> Webstation/Selkies
 
 The `/streaming` handler must proxy to `http://127.0.0.1:3010/streaming`, including the second `/streaming`. Tailscale removes the matched handler path before proxying; omitting it on the backend target makes Webstation receive `/` and display its default nginx welcome page instead of the streamed desktop.
 
+Webstation defaults to WebRTC with a UDP mux port bound only to Box's
+Tailscale IPv4 address. `TAILSCALE_IPV4` and `SELKIES_WEBRTC_UDP_MUX_PORT` in
+`.env` must match the current Box address and published UDP port. Tailscale
+clients may connect to that UDP port directly; Tailscale Serve continues to
+handle only HTTPS signaling. WebSockets remains selectable in the Selkies
+sidebar when a client network blocks UDP.
+
+Skate 3 keeps a large RPCS3 installation cache at
+`dev_hdd0/game/BLUS30464_INSTALL`. WebStation's generic RPCS3 save exporter
+would otherwise mistake it for game-save data. The included scoped override
+excludes that cache while retaining Skate 3's actual CellSaveData directory
+(`BLUS30464-ALIAS_SKATER`) for normal save synchronization.
+
 Do not publish Webstation's container port 3001. RomM 5.3's admin desktop
 session uses the same broker claim and tokenized `/streaming/` room as a game
 session; a separate desktop URL is neither needed nor protected by RomM's
@@ -96,6 +109,54 @@ docker compose --env-file .env up -d romm
 ```
 
 `tailscale serve` is private to the tailnet. Do **not** substitute `tailscale funnel`, and retain tailnet ACLs for least-privilege access.
+
+### Prometheus scrape for Selkies
+
+Webstation's Selkies server exposes Prometheus text metrics through the already
+private streaming handler. No additional host port or Tailscale Serve route is
+required. From a Prometheus host that can reach this machine over the tailnet,
+configure:
+
+For a direct authenticated Selkies scrape, configure:
+
+```yaml
+scrape_configs:
+  - job_name: romm-selkies
+    scheme: https
+    metrics_path: /streaming/stream/api/metrics
+    authorization:
+      credentials: <value of SELKIES_MASTER_TOKEN from emulator/.env>
+    static_configs:
+      - targets: ["<machine>.<tailnet>.ts.net"]
+```
+
+`SELKIES_MASTER_TOKEN` is a privileged Selkies API credential, so store it in
+Prometheus' secret mechanism rather than committing it to a Prometheus config.
+The endpoint is unavailable until Webstation has been recreated with
+`SELKIES_ENABLE_METRICS_HTTP=true`.
+
+For a Prometheus server that is trusted by your tailnet, the included
+`selkies-metrics` sidecar can instead inject the Selkies token privately. Start
+it and publish the loopback listener through Tailscale Serve:
+
+```bash
+docker compose --env-file .env up -d selkies-metrics
+sudo tailscale serve --https=443 --set-path=/metrics --bg http://127.0.0.1:3011/metrics
+```
+
+Then Prometheus needs no credential:
+
+```yaml
+scrape_configs:
+  - job_name: romm-selkies
+    scheme: https
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["<machine>.<tailnet>.ts.net"]
+```
+
+The proxy's host port must remain bound to `127.0.0.1`, and `/metrics` must
+remain a tailnet-only Tailscale Serve route. Do not use Funnel for metrics.
 
 ## 4. Configure Webstation from RomM
 

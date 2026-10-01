@@ -29,6 +29,10 @@ exclude:
         # titles. Keep them on the NAS for RPCS3, but never catalogue them.
         - pkg
         - rap
+        # Disc-verification support files belong beside PS3 folder dumps but
+        # are not standalone games.
+        - key
+        - ird
         # Helper scripts occasionally live beside converted disc images.
         - sh
       names:

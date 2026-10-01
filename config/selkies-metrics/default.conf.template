@@ -1,0 +1,17 @@
+server {
+    listen 8080;
+    listen [::]:8080;
+
+    # This listener is published only on 127.0.0.1. Tailscale Serve exposes
+    # it to the tailnet at /metrics; do not bind it to the LAN or internet.
+    location = /metrics {
+        proxy_set_header Authorization "Bearer ${SELKIES_MASTER_TOKEN}";
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+        proxy_pass http://romm-webstation:3000/streaming/stream/api/metrics;
+    }
+
+    location / {
+        return 404;
+    }
+}
