@@ -115,6 +115,7 @@ services:
       NVIDIA_DRIVER_CAPABILITIES: all
       # Keep xemu's mutable console configuration and HDD image in the
       # persistent Webstation volume, rather than an image-local default.
+      XEMU_BIN: /opt/romm/bin/xemu-bios-wrapper.sh
       XEMU_TOML: /config/xemu/xemu.toml
       XEMU_HDD_IMAGE: /config/xemu/xbox_hdd.qcow2
       # The packaged Vulkan stack is incomplete in this WebStation image.
@@ -129,6 +130,10 @@ services:
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+      # Xbox firmware is kept outside the scanned game library and is read-only
+      # in WebStation. Xemu's writable HDD remains under /config.
+      - ${XEMU_FIRMWARE_PATH:?set XEMU_FIRMWARE_PATH in .env}:/xemu-firmware:ro
+      - ./scripts/xemu-bios-wrapper.sh:/opt/romm/bin/xemu-bios-wrapper.sh:ro
       - ./scripts/pcsx2-opengl-wrapper.sh:/opt/romm/bin/pcsx2-opengl-wrapper.sh:ro
       - ./scripts/dolphin-mii-wrapper.sh:/opt/romm/bin/dolphin-mii-wrapper.sh:ro
       - ./config/webstation/rpcs3-skate3-save-filter.py:/opt/romm/overrides/sitecustomize.py:ro

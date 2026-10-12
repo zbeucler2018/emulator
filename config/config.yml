@@ -20,14 +20,16 @@ exclude:
   platforms:
     - backups
     - saves
+    # Firmware is mounted for emulators but is never a game platform.
+    - bios
   roms:
     single_file:
       extensions:
         - zip
         - 7z
-        # PS3 PKG/RAP files are installers and licenses, not launchable
-        # titles. Keep them on the NAS for RPCS3, but never catalogue them.
-        - pkg
+        # RAP files are licenses, not launchable titles.  PS3 PKGs are kept
+        # visible to the scanner: the WebStation RPCS3 broker installs a
+        # selected package into its persistent, writable game directory.
         - rap
         # Disc-verification support files belong beside PS3 folder dumps but
         # are not standalone games.
@@ -35,12 +37,17 @@ exclude:
         - ird
         # Helper scripts occasionally live beside converted disc images.
         - sh
+        # Notes and provenance files belong beside dumps, never as games.
+        - txt
       names:
         - "._*"
     multi_file:
       names:
         - zips
         - packages
+        # DLC packages are retained for manual/RPCS3 installation but are not
+        # standalone games, so never offer them as RomM launch targets.
+        - dlcs
         # PS3 `CATEGORY=GD` folders are installed disc-game data/updates, not
         # independently bootable games. They remain on the NAS for RPCS3 to
         # use with their matching disc dump, but are never offered as RomM
@@ -78,6 +85,9 @@ exclude:
         - BLUS31428
         - BLUS31436
         - BLUS31466
+        # Black Ops' old extracted PSN folder is read-only in the RomM
+        # library.  Its sibling .pkg is the supported WebStation launcher.
+        - NPUB30584
         - NPIA00005DATA
         # Additional legacy/install folders with neither a boot executable nor
         # title metadata. Keeping them out of the scan prevents a stream
