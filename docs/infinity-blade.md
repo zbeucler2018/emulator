@@ -76,6 +76,11 @@ and produces a `The current resolution is too low to run this game` dialog.
 Selkies scales the fixed canvas to each browser, so this lock does not prevent
 desktop or mobile clients from fitting the stream to their screens.
 
+Selkies also runs in continuous video mode. Its desktop-oriented paint-over
+mode can keep showing the initial black frame after Wine creates the game
+window; leaving and reopening the stream forces a keyframe and makes the game
+appear, but continuous mode removes that reconnect workaround.
+
 Selkies' direct-touch mode already supplies the required mapping:
 
 ```text

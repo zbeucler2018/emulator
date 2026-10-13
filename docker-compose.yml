@@ -112,6 +112,10 @@ services:
       # available from the Selkies sidebar as a fallback.
       SELKIES_MODE: webrtc
       SELKIES_ENABLE_DUAL_MODE: "true"
+      # Stream every frame for games. Desktop paint-over mode can remain black
+      # when a Wine game replaces the initially empty desktop; reconnecting a
+      # browser forces a keyframe, but continuous video avoids that workaround.
+      SELKIES_VIDEO_STREAMING_MODE: "true"
       # Infinity Blade rejects phone-sized virtual desktops (for example,
       # Mobile Safari resized the compositor to 390x668). Keep the streamed
       # desktop at a game-safe 16:9 resolution; Selkies scales that canvas to
