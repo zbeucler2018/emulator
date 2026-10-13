@@ -48,11 +48,16 @@ cd /home/service/repos/emulator
 scripts/setup-infinity-blade.sh
 ```
 
-The script builds the derived WebStation image, recreates WebStation (and runs
-the existing one-shot mount guard), creates
+The script builds the derived WebStation image, refreshes a Box-side runtime
+cache from the canonical copies on Sophia, recreates WebStation (and runs the
+existing one-shot mount guard), creates
 `/srv/emulator/webstation/infinity-blade/prefix`, and installs the documented
 Visual C++ 2010 and DirectX 9 helper libraries with Winetricks. It does not
-fetch a game. Re-running it is safe; remove only the marker
+fetch a game. The cache lives at
+`/srv/emulator/webstation/infinity-blade/game-cache` and avoids UE3's hundreds
+of thousands of small startup reads crossing the NAS; saves remain in RomM
+and the Wine prefix, not in that cache. Re-run the setup script after replacing
+a port with a newer release. Re-running it is safe; remove only the marker
 `/srv/emulator/webstation/infinity-blade/prefix/.infinity-blade-runtime-ready`
 if the runtime installation genuinely needs to be repeated.
 
@@ -82,9 +87,10 @@ while Wine replaced the loading splash even though the live Xwayland display
 was already rendering gameplay. WebSockets retains Selkies, NVIDIA encoding,
 audio, and browser input while avoiding that late-frame recovery failure.
 
-IB1's small splash is a loading window, not a launcher. Leave it open: on the
-NAS-backed library it can remain for several minutes and closes itself when
-the main window is ready. Closing it manually can interrupt initialization.
+IB1's small splash is a loading window, not a launcher. Leave it open: it
+closes itself when the main window is ready, and closing it manually can
+interrupt initialization. The Box-side cache reduced a clean tested launch
+from several NAS-bound minutes to roughly 20 seconds.
 
 Selkies' direct-touch mode already supplies the required mapping:
 
@@ -108,6 +114,12 @@ The game ports themselves use mouse drags as sword swipes. For IB1, direct
 action reaches the game without another click. If fullscreen or key bindings
 must be changed, run the port's launcher once from RomM's WebStation admin
 desktop; subsequent game starts remain automatic.
+
+IB3 is launched with UE3's `1280x720` fullscreen flags. Its v1.0.0 DX9 build
+still creates a smaller decorated Wine parent around the 1280x720 renderer
+during the opening movie. Rewriting its INI or forcibly resizing that parent
+made the movie black, so the integration deliberately preserves the
+known-good animated mode rather than applying that unsafe cosmetic workaround.
 
 ## Saves and recovery
 
@@ -166,18 +178,20 @@ appear as separate Windows games in RomM. Box has the derived image,
 registered broker backend, initialized mixed 32/64-bit Wine prefix, VC++ 2010,
 and DirectX 9 runtime. The normal repository health check passes.
 
-- IB1: its real `IB1.exe` rendered gameplay, produced browser audio, accepted
+- IB1: its real cached `IB1.exe` rendered gameplay in about 20 seconds,
+  produced browser audio, accepted
   a desktop mouse drag, archived its Wine-side files on exit, and restored its
   Wine-side files on the next broker launch. A later clean diagnostic proved
   that gameplay was already live in Xwayland while WebRTC still displayed its
   initial black frame; the deployment now defaults to WebSockets.
-- IB2: its real `IB2.exe` rendered gameplay through Selkies, produced browser
-  audio, and generated a non-empty exit archive. A restore round trip has not
-  yet been checked.
-- IB3: the real `IB3.exe`, IB3 window title, splash, and audio were observed,
-  but the main render window remained black in the tested v1.0.0 build. Its
-  launcher showed D3D9 MSAA enabled by default; disabling it was tested as a
-  diagnostic but gameplay rendering is not yet verified.
+- IB2: its real cached `IB2.exe` rendered gameplay through Selkies in about 25
+  seconds, produced browser audio, accepted a desktop mouse drag, and generated
+  a non-empty exit archive. A restore round trip has not yet been checked.
+- IB3: after a clean WebStation reset, the real cached `IB3.exe` showed the
+  unambiguous `Infinity Blade III (64-bit, DX9)` title and animated opening
+  through Selkies in about 20 seconds with audio active. The full opening and
+  touchscreen combat have not yet been played through; the initial parent
+  window remains smaller than the stream for the reason documented above.
 - iPhone launch reached Wine through the RomM Play action. The first attempt
   exposed the mobile-resolution failure described above; the 1280x720 lock is
   deployed and verified at the compositor, but the user-facing mobile retry

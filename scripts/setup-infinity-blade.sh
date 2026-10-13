@@ -12,6 +12,32 @@ fi
 echo "Building the derived WebStation image with Wine..."
 docker compose --env-file .env build romm-webstation
 
+set -a
+# shellcheck disable=SC1091
+source .env
+set +a
+
+cache_root="${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}/infinity-blade/game-cache"
+mkdir -p "$cache_root"
+
+echo "Refreshing the Box-side game cache from Sophia..."
+while IFS='|' read -r key directory; do
+    source_dir="${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}/Windows/$directory"
+    if [[ ! -d "$source_dir" ]]; then
+        echo "  $directory: not installed; skipping cache" >&2
+        continue
+    fi
+    mkdir -p "$cache_root/$key"
+    rsync -a --delete "$source_dir/" "$cache_root/$key/"
+    echo "  $directory: cached"
+done <<'GAMES'
+ib1|Infinity Blade
+ib2|Infinity Blade II
+ib3|Infinity Blade III
+GAMES
+
+chown -R "${WEBSTATION_PUID:-1000}:${WEBSTATION_PGID:-1000}" "$cache_root"
+
 echo "Starting the Wine-enabled WebStation service..."
 docker compose --env-file .env up -d romm-webstation
 
