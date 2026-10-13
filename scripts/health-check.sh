@@ -13,6 +13,11 @@ set +a
 "$repo_root/scripts/mount-check.sh"
 docker compose --env-file "$env_file" -f "$repo_root/docker-compose.yml" ps --status running --services | grep -qx romm
 curl --fail --silent --show-error "http://127.0.0.1:${ROMM_PORT:-8080}/" >/dev/null
+docker compose --env-file "$env_file" -f "$repo_root/docker-compose.yml" \
+  exec -T romm-webstation wine --version >/dev/null
+docker compose --env-file "$env_file" -f "$repo_root/docker-compose.yml" \
+  exec -T -u abc romm-webstation python3 -c \
+  'from webstation_broker.emulators import REGISTRY; assert "infinity-blade" in REGISTRY'
 
 if [[ -f "$BACKUP_ROOT/last-successful-backup" ]]; then
   echo "Last save backup: $(cat "$BACKUP_ROOT/last-successful-backup")"

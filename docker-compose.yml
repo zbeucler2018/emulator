@@ -85,8 +85,13 @@ services:
   # romm-broker, and the supported emulators; it is not a replacement for
   # RomM's existing EmulatorJS player.
   romm-webstation:
-    # WebStation v0.9.0-ls26 currently deployed; pinned by immutable digest.
-    image: lscr.io/linuxserver/webstation@sha256:c9d31abdd27a87634d80552283eb2d9aa8d11f1adc29d43618babafa037b927b
+    # Thin local derivative of the pinned WebStation v0.9.0-ls26 image. It
+    # adds Wine only; all emulator, Selkies and broker components remain the
+    # upstream image versions recorded in the Dockerfile.
+    image: emulator-webstation-infinity-blade:0.1.0
+    build:
+      context: .
+      dockerfile: docker/webstation-infinity-blade.Dockerfile
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
@@ -113,6 +118,9 @@ services:
       SELKIES_CONGESTION_CONTROL: "true"
       # Keep Skate 3's RPCS3 game-install cache out of its tiny save archive.
       ROMM_RPC3_SKATE3_SAVE_FILTER: "true"
+      INFINITY_BLADE_ENABLED: "true"
+      INFINITY_BLADE_WINEPREFIX: /config/infinity-blade/prefix
+      INFINITY_BLADE_WINE_USER: abc
       PYTHONPATH: /opt/romm/overrides
       AUTO_GPU: "true"
       NVIDIA_VISIBLE_DEVICES: all
@@ -142,7 +150,9 @@ services:
       - ./scripts/xemu-bios-wrapper.sh:/opt/romm/bin/xemu-bios-wrapper.sh:ro
       - ./scripts/pcsx2-opengl-wrapper.sh:/opt/romm/bin/pcsx2-opengl-wrapper.sh:ro
       - ./scripts/dolphin-mii-wrapper.sh:/opt/romm/bin/dolphin-mii-wrapper.sh:ro
-      - ./config/webstation/rpcs3-skate3-save-filter.py:/opt/romm/overrides/sitecustomize.py:ro
+      - ./scripts/infinity-blade-wine.sh:/opt/romm/bin/infinity-blade-wine:ro
+      - ./config/webstation/sitecustomize.py:/opt/romm/overrides/sitecustomize.py:ro
+      - ./config/webstation/infinity-blade.py:/opt/romm/overrides/infinity_blade.py:ro
       # The desktop icon uses the same shim, so Miis created in an admin
       # desktop session enter the shared database before the next game launch.
       - ./config/webstation/dolphin-emu.desktop:/config/Desktop/dolphin-emu.desktop:ro

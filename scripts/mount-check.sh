@@ -17,8 +17,10 @@ fail() { printf '%s\n' "mount check: $*" >&2; exit 1; }
 [ -f "$games_mount/$nas_marker" ] || fail "missing NAS marker: $games_mount/$nas_marker"
 
 if command -v findmnt >/dev/null 2>&1; then
-  fs_type="$(findmnt -n -o FSTYPE -T "$games_mount" 2>/dev/null || true)"
-  source="$(findmnt -n -o SOURCE -T "$games_mount" 2>/dev/null || true)"
+  # A systemd automount can make findmnt report both an autofs layer and the
+  # CIFS mount beneath it. Select the actual network filesystem explicitly.
+  fs_type="$(findmnt -n -t cifs -o FSTYPE -T "$games_mount" 2>/dev/null || true)"
+  source="$(findmnt -n -t cifs -o SOURCE -T "$games_mount" 2>/dev/null || true)"
   [ "$fs_type" = "cifs" ] || fail "$games_mount is $fs_type, expected cifs"
   case "$source" in
     "//$nas_server/$nas_share"*|"//$nas_server"*) ;;

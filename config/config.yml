@@ -116,6 +116,7 @@ system:
     PSX: psx
     PSP: psp
     Wii: wii
+    Windows: win
     Xbox: xbox
 
 scan:
@@ -170,3 +171,7 @@ streaming:
           memory_card_sync: true
         wii: dolphin
         xbox: xemu
+        win:
+          emulator: infinity-blade
+          label: Infinity Blade (Wine)
+          clears_stale_saves: true
