@@ -116,10 +116,11 @@ must be changed, run the port's launcher once from RomM's WebStation admin
 desktop; subsequent game starts remain automatic.
 
 IB3 is launched with UE3's `1280x720` fullscreen flags. Its v1.0.0 DX9 build
-still creates a smaller decorated Wine parent around the 1280x720 renderer
-during the opening movie. Rewriting its INI or forcibly resizing that parent
-made the movie black, so the integration deliberately preserves the
-known-good animated mode rather than applying that unsafe cosmetic workaround.
+still creates a smaller decorated Wine parent during the opening movie, so a
+scoped labwc rule puts the mapped `ib3.exe` window into compositor fullscreen.
+The same rule covers `ib1.exe` and `ib2.exe`. This avoids rewriting the ports'
+generated INIs, which made IB3's startup movie black, while filling the locked
+1280x720 Selkies canvas without borders or desktop background.
 
 ## Saves and recovery
 
@@ -186,20 +187,22 @@ health check passes.
 - IB1: the real cached `IB1.exe` rendered combat in about 20 seconds, produced
   browser audio, and accepted a desktop mouse drag. RomM collected a complete
   10-file save ZIP, then restored all 10 payload files with zero failures on a
-  second launch that rendered correctly. A clean diagnostic also proved that
+  second launch that rendered correctly. Its compositor window was verified at
+  1280x720 with `_NET_WM_STATE_FULLSCREEN`. A clean diagnostic also proved that
   gameplay was live in Xwayland while WebRTC still displayed its initial black
   frame; the deployment now defaults to WebSockets.
 - IB2: the real cached `IB2.exe` rendered gameplay in about 20 seconds,
   produced browser audio, and accepted a desktop mouse drag. RomM collected a
   complete 15-file save ZIP, restored all 15 payload files with zero failures,
-  and rendered the game again.
+  and rendered the game again. Its compositor window was also verified at
+  1280x720 with `_NET_WM_STATE_FULLSCREEN`.
 - IB3: the real cached `IB3.exe` showed the unambiguous `Infinity Blade III
   (64-bit, DX9)` title and animated opening through Selkies in about 20 seconds
   with audio active. RomM collected a complete 24-file save snapshot and
   restored all 24 payload files with zero failures; the restored launch again
-  rendered the animated opening with audio. The full opening and touchscreen
-  combat have not yet been played through. The initial parent window remains
-  smaller than the stream for the reason documented above.
+  rendered the animated opening with audio. Its compositor window filled the
+  1280x720 stream in fullscreen without making the movie black. The full
+  opening and touchscreen combat have not yet been played through.
 - Selkies' deployed touch path was inspected and covers tap, held drag,
   direction-preserving swipe, release, long press, two-finger scrolling,
   letterbox-aware coordinate scaling, and `preventDefault` on mobile touch

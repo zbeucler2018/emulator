@@ -20,3 +20,11 @@ RUN dpkg --add-architecture i386 \
     # A configured PUID changes the abc account at runtime, causing wlroots to
     # reject the directory and preventing labwc/Xwayland (and Wine) starting.
     && install -d -o root -g root -m 1777 /tmp/.X11-unix
+
+# WebStation regenerates labwc's user configuration from this template on
+# every container start. Match only the three known Wine executables and put
+# their normal game windows into compositor fullscreen as soon as they map.
+# This fills Selkies' locked 1280x720 canvas without teaching the individual
+# ports about browser dimensions or resizing their renderers after startup.
+RUN sed -i '/<\/windowRules>/i\    <windowRule identifier="ib?.exe" type="normal" serverDecoration="no">\n      <action name="ToggleFullscreen" />\n    </windowRule>' \
+        /defaults/labwc.xml
