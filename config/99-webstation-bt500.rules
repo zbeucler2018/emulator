@@ -1,0 +1,3 @@
+# Allow WebStation's configured UID 1000 to open only the ASUS USB-BT500.
+# Install on Box in /etc/udev/rules.d/; reapplies when VirtualHere reconnects.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0b05", ATTR{idProduct}=="1d70", OWNER="1000", MODE="0660"

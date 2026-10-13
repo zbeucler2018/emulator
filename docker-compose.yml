@@ -132,6 +132,8 @@ services:
     volumes:
       # Persist emulator configuration, firmware, save staging and broker data.
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
+      # Real Wii Remotes: forwarded USB Bluetooth adapters may reconnect on a new bus.
+      - /dev/bus/usb:/dev/bus/usb
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
       # Xbox firmware is kept outside the scanned game library and is read-only
@@ -151,6 +153,8 @@ services:
       - "${TAILSCALE_IPV4:?set TAILSCALE_IPV4 in .env}:${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}:${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}/udp"
     devices:
       - /dev/dri:/dev/dri
+    device_cgroup_rules:
+      - 'c 189:* rwm'
     group_add:
       - "${VIDEO_GID:-44}"
       - "${RENDER_GID:-992}"
