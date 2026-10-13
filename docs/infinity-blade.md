@@ -79,7 +79,8 @@ desktop or mobile clients from fitting the stream to their screens.
 Selkies also runs in continuous video mode. Its desktop-oriented paint-over
 mode can keep showing the initial black frame after Wine creates the game
 window; leaving and reopening the stream forces a keyframe and makes the game
-appear, but continuous mode removes that reconnect workaround.
+appear. A two-second recovery-keyframe interval additionally prevents Mobile
+Safari from remaining on the initial black GOP while the Wine window starts.
 
 Selkies' direct-touch mode already supplies the required mapping:
 

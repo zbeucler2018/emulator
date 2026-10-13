@@ -116,6 +116,10 @@ services:
       # when a Wine game replaces the initially empty desktop; reconnecting a
       # browser forces a keyframe, but continuous video avoids that workaround.
       SELKIES_VIDEO_STREAMING_MODE: "true"
+      # Mobile Safari can remain on the initial black GOP after Wine creates
+      # the game window. Periodic recovery IDRs let an already-connected peer
+      # acquire the live frame without closing and reopening the stream.
+      SELKIES_KEYFRAME_INTERVAL: "2"
       # Infinity Blade rejects phone-sized virtual desktops (for example,
       # Mobile Safari resized the compositor to 390x668). Keep the streamed
       # desktop at a game-safe 16:9 resolution; Selkies scales that canvas to
