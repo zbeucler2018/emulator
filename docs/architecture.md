@@ -52,6 +52,12 @@ broker continues to clear and sync every other Wii save normally. Do not set a
 0.9.0 already declares and performs the clear, and the wrapper preserves only
 the shared Mii database.
 
+The Infinity Blade backend follows the same broker isolation contract. Wine's
+runtime and registry persist below `/config/infinity-blade/prefix`, while the
+broker clears/restores only `drive_c/users/abc/Documents/My Games` for the
+selected RomM user and game. This keeps the DirectX/VC++ setup local and avoids
+shipping an entire Wine prefix in every save archive.
+
 ## Platform baseline
 
 The supplied config selects a conservative core for GB/GBC/GBA, NES, SNES, N64, Master System, Game Gear, and Genesis. RomM/EmulatorJS also has support for the optional Neo Geo Pocket and WonderSwan families. N64 results vary by device and game; it is intentionally the Phase 1 ceiling. Nintendo DS and disc-based platforms are out of scope.

@@ -16,6 +16,8 @@ Older systems continue to run in the browser through EmulatorJS. Webstation stre
   route; Webstation's standalone port 3001 stays unpublished.
 - A shared Dolphin Wii Mii database that survives per-game save cleanup while
   leaving normal RomM Wii save syncing enabled.
+- A scoped Infinity Blade I-III Wine backend using the existing WebStation and
+  Selkies stream; game files remain user-supplied.
 - Setup, operating, recovery, and ROM-library documentation.
 
 ## Quick start
@@ -58,3 +60,6 @@ configure Dolphin or create Miis. Release the desktop session in RomM when done.
 - Review known persistence limits: [docs/architecture.md](docs/architecture.md#save-guarantees-and-limits)
 
 Pin `ROMM_IMAGE` to a tested image digest before production upgrades; `latest` is the upstream quick-start default, not an immutable release pin.
+
+Infinity Blade has a separate, game-specific setup because its community PC
+ports are not included: [Infinity Blade through RomM](docs/infinity-blade.md).

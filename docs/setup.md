@@ -65,6 +65,11 @@ scripts/preflight.sh
 docker compose --env-file .env up -d
 ```
 
+The standard Compose build now creates a thin Wine-enabled derivative of the
+pinned WebStation image. This changes no upstream emulator or Selkies package.
+To add the separately supplied Infinity Blade ports and initialize their
+DirectX/VC++ Wine prefix, follow [Infinity Blade through RomM](infinity-blade.md).
+
 ## 3. Publish only inside Tailscale
 
 RomM is deliberately bound to `127.0.0.1:8080`; Webstation is deliberately bound to `127.0.0.1:3010`. Configure the private HTTPS proxy with both routes:
