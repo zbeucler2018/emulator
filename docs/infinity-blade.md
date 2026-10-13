@@ -58,12 +58,12 @@ if the runtime installation genuinely needs to be repeated.
 
 In RomM, run a quick scan or scan the Windows platform. The `Windows: win`
 binding makes the three directories separate Windows games, and the
-`win: infinity-blade` streaming mapping adds **Infinity Blade (Wine)** to each
+`win: infinity-blade` streaming mapping adds **Wine** to each
 game's Play actions.
 
 ## Playing
 
-Open a game in RomM and choose **Infinity Blade (Wine)**. WebStation starts
+Open a game in RomM and choose **Wine**. WebStation starts
 the known game executable through Wine and RomM opens the existing tokenized
 Selkies stream. Use **Save & Quit** or the stream's normal exit control before
 leaving when possible; this lets the broker stop Wine, archive changed files,
@@ -76,11 +76,15 @@ and produces a `The current resolution is too low to run this game` dialog.
 Selkies scales the fixed canvas to each browser, so this lock does not prevent
 desktop or mobile clients from fitting the stream to their screens.
 
-Selkies also runs in continuous video mode. Its desktop-oriented paint-over
-mode can keep showing the initial black frame after Wine creates the game
-window; leaving and reopening the stream forces a keyframe and makes the game
-appear. A two-second recovery-keyframe interval additionally prevents Mobile
-Safari from remaining on the initial black GOP while the Wine window starts.
+Selkies defaults to its WebSocket transport and continuous video mode. In the
+WebRTC transport, the encoder could stay pinned to the all-black GOP captured
+while Wine replaced the loading splash even though the live Xwayland display
+was already rendering gameplay. WebSockets retains Selkies, NVIDIA encoding,
+audio, and browser input while avoiding that late-frame recovery failure.
+
+IB1's small splash is a loading window, not a launcher. Leave it open: on the
+NAS-backed library it can remain for several minutes and closes itself when
+the main window is ready. Closing it manually can interrupt initialization.
 
 Selkies' direct-touch mode already supplies the required mapping:
 
@@ -142,6 +146,19 @@ already cover the RomM save archives; include `/srv/emulator/webstation` in
 the local application-state backup if retaining the configured Wine runtime
 without rebuilding it matters.
 
+## RomM metadata
+
+The three RomM records use their original iOS release dates, ChAIR/Epic
+developer and publisher credits, single-player mode, action-RPG genres, age
+ratings, community-port versions, MobyGames IDs, English/worldwide tags, and
+locally cached cover files. Descriptions and dates are based on Epic's
+[IB1](https://www.epicgames.com/infinityblade/en-US/game-info/infinity-blade-i),
+[IB2](https://www.epicgames.com/infinityblade/en-US/game-info/infinity-blade-ii),
+and [IB3](https://www.epicgames.com/infinityblade/en-US/game-info/infinity-blade-iii)
+pages. Cover provenance is the title's published promotional art; RomM keeps
+its own copies under `/srv/emulator/resources/roms/17/<rom-id>/cover` so the
+library does not depend on a remote image remaining available.
+
 ## Validation status
 
 As of 2026-10-13, all three supplied packages are installed on Sophia and
@@ -149,9 +166,11 @@ appear as separate Windows games in RomM. Box has the derived image,
 registered broker backend, initialized mixed 32/64-bit Wine prefix, VC++ 2010,
 and DirectX 9 runtime. The normal repository health check passes.
 
-- IB1: its real `IB1.exe` rendered gameplay through Selkies, produced browser
-  audio, accepted a desktop mouse drag, archived its Wine-side files on exit,
-  and restored ten files on the next broker launch.
+- IB1: its real `IB1.exe` rendered gameplay, produced browser audio, accepted
+  a desktop mouse drag, archived its Wine-side files on exit, and restored its
+  Wine-side files on the next broker launch. A later clean diagnostic proved
+  that gameplay was already live in Xwayland while WebRTC still displayed its
+  initial black frame; the deployment now defaults to WebSockets.
 - IB2: its real `IB2.exe` rendered gameplay through Selkies, produced browser
   audio, and generated a non-empty exit archive. A restore round trip has not
   yet been checked.

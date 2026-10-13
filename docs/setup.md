@@ -89,12 +89,12 @@ https://<machine>.<tailnet>.ts.net/streaming/   -> Webstation/Selkies
 
 The `/streaming` handler must proxy to `http://127.0.0.1:3010/streaming`, including the second `/streaming`. Tailscale removes the matched handler path before proxying; omitting it on the backend target makes Webstation receive `/` and display its default nginx welcome page instead of the streamed desktop.
 
-Webstation defaults to WebRTC with a UDP mux port bound only to Box's
-Tailscale IPv4 address. `TAILSCALE_IPV4` and `SELKIES_WEBRTC_UDP_MUX_PORT` in
-`.env` must match the current Box address and published UDP port. Tailscale
-clients may connect to that UDP port directly; Tailscale Serve continues to
-handle only HTTPS signaling. WebSockets remains selectable in the Selkies
-sidebar when a client network blocks UDP.
+Webstation defaults to Selkies' WebSocket transport, carried through the same
+tailnet-only HTTPS route. This avoids a WebRTC late-keyframe failure observed
+when Wine replaces Infinity Blade's long-lived splash window with the game.
+The existing `TAILSCALE_IPV4` and `SELKIES_WEBRTC_UDP_MUX_PORT` settings keep
+the optional WebRTC mux bound only to Box's Tailscale address if that transport
+is enabled again; it is never exposed on the LAN or public internet.
 
 Skate 3 keeps a large RPCS3 installation cache at
 `dev_hdd0/game/BLUS30464_INSTALL`. WebStation's generic RPCS3 save exporter

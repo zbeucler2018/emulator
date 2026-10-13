@@ -167,7 +167,7 @@ class InfinityBlade(Emulator):
     """Launch only the three Infinity Blade PC ports through Wine."""
 
     name = "infinity-blade"
-    display_name = "Infinity Blade (Wine)"
+    display_name = "Wine"
     rom_extensions = (".exe",)
     save_root = PREFIX_DIR / "drive_c"
     save_subtrees = (MY_GAMES_SUBTREE,)

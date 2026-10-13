@@ -107,11 +107,15 @@ services:
       # token-authenticated /streaming/ Tailscale Serve route.
       SELKIES_ENABLE_METRICS_HTTP: "true"
       SELKIES_MASTER_TOKEN: ${SELKIES_MASTER_TOKEN:?set SELKIES_MASTER_TOKEN in .env}
-      # WebRTC media is direct UDP; keep its mux port on the Tailscale address
-      # rather than exposing it to the LAN or internet. WebSockets remains
-      # available from the Selkies sidebar as a fallback.
-      SELKIES_MODE: webrtc
-      SELKIES_ENABLE_DUAL_MODE: "true"
+      # Default to Selkies' WebSocket transport.  The WebRTC/NVENC path can
+      # stay pinned to the all-black GOP captured while Wine replaces the
+      # loading splash, even though the live Xwayland display is rendering.
+      # WebSockets still uses the existing Selkies stream and NVIDIA encoder,
+      # but reliably hands late game frames to desktop and mobile browsers.
+      # Disable dual-mode selection so browsers that previously remembered
+      # WebRTC automatically follow this server-side default.
+      SELKIES_MODE: websockets
+      SELKIES_ENABLE_DUAL_MODE: "false"
       # Stream every frame for games. Desktop paint-over mode can remain black
       # when a Wine game replaces the initially empty desktop; reconnecting a
       # browser forces a keyframe, but continuous video avoids that workaround.

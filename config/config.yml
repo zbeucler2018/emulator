@@ -173,5 +173,5 @@ streaming:
         xbox: xemu
         win:
           emulator: infinity-blade
-          label: Infinity Blade (Wine)
+          label: Wine
           clears_stale_saves: true
