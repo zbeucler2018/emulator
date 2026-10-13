@@ -30,7 +30,7 @@ Extract each supplied port on Sophia so Box sees this layout:
     Binaries/Win32/IB2.exe
     SwordGame/...
   Infinity Blade III/
-    Binaries/Infinity Blade III.exe
+    Binaries/Win64/IB3.exe
     SwordGame/...
 ```
 
@@ -68,6 +68,13 @@ the known game executable through Wine and RomM opens the existing tokenized
 Selkies stream. Use **Save & Quit** or the stream's normal exit control before
 leaving when possible; this lets the broker stop Wine, archive changed files,
 and let RomM collect them.
+
+WebStation is intentionally locked to a 1280x720 virtual desktop. Mobile
+Safari otherwise asks Selkies to resize the compositor to its CSS viewport
+(390x668 was observed on an iPhone), which is below Infinity Blade's minimum
+and produces a `The current resolution is too low to run this game` dialog.
+Selkies scales the fixed canvas to each browser, so this lock does not prevent
+desktop or mobile clients from fitting the stream to their screens.
 
 Selkies' direct-touch mode already supplies the required mapping:
 
@@ -131,11 +138,22 @@ without rebuilding it matters.
 
 ## Validation status
 
-As of 2026-10-12, Box has the derived image, registered broker backend,
-initialized mixed 32/64-bit Wine prefix, VC++ 2010, and DirectX 9 runtime. RomM
-loads the `Windows -> win -> infinity-blade` mapping and its normal health
-checks pass. No Infinity Blade game files were present on Box or Sophia, so an
-actual game executable, rendering, audio, mouse/touch combat, and real save
-round trip have **not** been validated. After supplying the files, test IB1
-first, exit after an in-game save, launch it again, and confirm the restored
-progress before adding IB2 and IB3.
+As of 2026-10-13, all three supplied packages are installed on Sophia and
+appear as separate Windows games in RomM. Box has the derived image,
+registered broker backend, initialized mixed 32/64-bit Wine prefix, VC++ 2010,
+and DirectX 9 runtime. The normal repository health check passes.
+
+- IB1: its real `IB1.exe` rendered gameplay through Selkies, produced browser
+  audio, accepted a desktop mouse drag, archived its Wine-side files on exit,
+  and restored ten files on the next broker launch.
+- IB2: its real `IB2.exe` rendered gameplay through Selkies, produced browser
+  audio, and generated a non-empty exit archive. A restore round trip has not
+  yet been checked.
+- IB3: the real `IB3.exe`, IB3 window title, splash, and audio were observed,
+  but the main render window remained black in the tested v1.0.0 build. Its
+  launcher showed D3D9 MSAA enabled by default; disabling it was tested as a
+  diagnostic but gameplay rendering is not yet verified.
+- iPhone launch reached Wine through the RomM Play action. The first attempt
+  exposed the mobile-resolution failure described above; the 1280x720 lock is
+  deployed and verified at the compositor, but the user-facing mobile retry
+  and touchscreen combat remain to be validated.

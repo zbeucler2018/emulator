@@ -15,4 +15,8 @@ RUN dpkg --add-architecture i386 \
         wine64 \
         winetricks \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    # WebStation's base image owns this directory with its build-time UID.
+    # A configured PUID changes the abc account at runtime, causing wlroots to
+    # reject the directory and preventing labwc/Xwayland (and Wine) starting.
+    && install -d -o root -g root -m 1777 /tmp/.X11-unix

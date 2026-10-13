@@ -112,6 +112,14 @@ services:
       # available from the Selkies sidebar as a fallback.
       SELKIES_MODE: webrtc
       SELKIES_ENABLE_DUAL_MODE: "true"
+      # Infinity Blade rejects phone-sized virtual desktops (for example,
+      # Mobile Safari resized the compositor to 390x668). Keep the streamed
+      # desktop at a game-safe 16:9 resolution; Selkies scales that canvas to
+      # each browser without changing Wine's display underneath it.
+      SELKIES_MANUAL_RESOLUTION: "true"
+      SELKIES_MANUAL_WIDTH: "1280"
+      SELKIES_MANUAL_HEIGHT: "720"
+      SELKIES_ENABLE_RESIZE: "false"
       SELKIES_WEBRTC_UDP_MUX_PORT: ${SELKIES_WEBRTC_UDP_MUX_PORT:-59000}
       SELKIES_WEBRTC_PUBLIC_IP: ${TAILSCALE_IPV4:?set TAILSCALE_IPV4 in .env}
       SELKIES_WEBRTC_ICE_LITE: "true"
