@@ -138,12 +138,14 @@ Infinity Blade II/SwordGame/Cloud
 Infinity Blade III/SwordGame/Cloud
 ```
 
-On exit, changed files from `My Games` are archived under the `infinity-blade`
-emulator namespace and stored with that RomM user and game. The rest of the
-prefix (Wine registry and installed DirectX/VC++ components) remains local and
-persistent. RomM also pulls the broker export if the broker's optional direct
-callback cannot reach RomM; a callback warning in WebStation is not by itself
-a save failure.
+On exit, files from `My Games` are archived under the `infinity-blade`
+emulator namespace and stored with that RomM user and game. The launcher moves
+the restored tree's mtimes past WebStation's launch baseline so each archive is
+a complete, independently restorable snapshot instead of a delta that depends
+on an older ZIP. The rest of the prefix (Wine registry and installed
+DirectX/VC++ components) remains local and persistent. RomM also pulls the
+broker export if the broker's optional direct callback cannot reach RomM; a
+callback warning in WebStation is not by itself a save failure.
 
 To inspect failures without a desktop:
 
@@ -176,23 +178,30 @@ library does not depend on a remote image remaining available.
 As of 2026-10-13, all three supplied packages are installed on Sophia and
 appear as separate Windows games in RomM. Box has the derived image,
 registered broker backend, initialized mixed 32/64-bit Wine prefix, VC++ 2010,
-and DirectX 9 runtime. The normal repository health check passes.
+and DirectX 9 runtime. The tests below used RomM's authenticated
+`/api/streaming/sessions` path, the RomM-issued Selkies URL, and RomM's own
+Save & Quit path rather than calling the broker directly. The normal repository
+health check passes.
 
-- IB1: its real cached `IB1.exe` rendered gameplay in about 20 seconds,
-  produced browser audio, accepted
-  a desktop mouse drag, archived its Wine-side files on exit, and restored its
-  Wine-side files on the next broker launch. A later clean diagnostic proved
-  that gameplay was already live in Xwayland while WebRTC still displayed its
-  initial black frame; the deployment now defaults to WebSockets.
-- IB2: its real cached `IB2.exe` rendered gameplay through Selkies in about 25
-  seconds, produced browser audio, accepted a desktop mouse drag, and generated
-  a non-empty exit archive. A restore round trip has not yet been checked.
-- IB3: after a clean WebStation reset, the real cached `IB3.exe` showed the
-  unambiguous `Infinity Blade III (64-bit, DX9)` title and animated opening
-  through Selkies in about 20 seconds with audio active. The full opening and
-  touchscreen combat have not yet been played through; the initial parent
-  window remains smaller than the stream for the reason documented above.
-- iPhone launch reached Wine through the RomM Play action. The first attempt
-  exposed the mobile-resolution failure described above; the 1280x720 lock is
-  deployed and verified at the compositor, but the user-facing mobile retry
-  and touchscreen combat remain to be validated.
+- IB1: the real cached `IB1.exe` rendered combat in about 20 seconds, produced
+  browser audio, and accepted a desktop mouse drag. RomM collected a complete
+  10-file save ZIP, then restored all 10 payload files with zero failures on a
+  second launch that rendered correctly. A clean diagnostic also proved that
+  gameplay was live in Xwayland while WebRTC still displayed its initial black
+  frame; the deployment now defaults to WebSockets.
+- IB2: the real cached `IB2.exe` rendered gameplay in about 20 seconds,
+  produced browser audio, and accepted a desktop mouse drag. RomM collected a
+  complete 15-file save ZIP, restored all 15 payload files with zero failures,
+  and rendered the game again.
+- IB3: the real cached `IB3.exe` showed the unambiguous `Infinity Blade III
+  (64-bit, DX9)` title and animated opening through Selkies in about 20 seconds
+  with audio active. RomM collected a complete 24-file save snapshot and
+  restored all 24 payload files with zero failures; the restored launch again
+  rendered the animated opening with audio. The full opening and touchscreen
+  combat have not yet been played through. The initial parent window remains
+  smaller than the stream for the reason documented above.
+- Selkies' deployed touch path was inspected and covers tap, held drag,
+  direction-preserving swipe, release, long press, two-finger scrolling,
+  letterbox-aware coordinate scaling, and `preventDefault` on mobile touch
+  events. A physical iPhone/iPad combat session remains the final device-side
+  validation; desktop mouse combat is verified.
