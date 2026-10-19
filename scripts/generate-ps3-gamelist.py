@@ -28,6 +28,7 @@ UTF8_FORMAT = 0x0204
 # serial and game files are never changed.
 TITLE_OVERRIDES = {
     "digital_games/BLUS30464": ("Skate 3", "BLUS30464"),
+    "disk_games/Watch_Dogs (USA) (En,Fr,Es,Pt)": ("Watch Dogs", "BLUS31176"),
     # The package's local header names content ID
     # UP0006-NPUB30569_00-DS1HDDNAEFS00001 (Dead Space, US PSN release).
     "digital_games/JpnzMoXYQxLVoDQuYjTLkRaBMTwvKkRUpTPFZPObbAVkNQgBbGqlAMtQmcChmbokRQeHvcnocHDqdrGNpbYVKYpuQXPBSSZurxive.pkg": (
@@ -42,6 +43,30 @@ TITLE_OVERRIDES = {
 # launchable.  All values are local gamelist fields and can be replaced by a
 # configured online provider later.
 METADATA_OVERRIDES = {
+    "BLUS31176": {
+        "desc": "An open-world action-adventure game about hacker Aiden Pearce using Chicago's connected infrastructure to pursue his own agenda.",
+        "releasedate": "20140527T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, Adventure",
+        "players": "1",
+    },
+    "BLUS30566": {
+        "desc": "A high-speed racing game built around police pursuits, exotic cars, and competing as either a racer or a cop.",
+        "releasedate": "20101116T000000",
+        "developer": "Criterion Games",
+        "publisher": "Electronic Arts",
+        "genre": "Racing",
+        "players": "1-8",
+    },
+    "BLUS30721": {
+        "desc": "A cinematic action game inspired by Asian mythology, following the demigod Asura on a quest for vengeance.",
+        "releasedate": "20120221T000000",
+        "developer": "CyberConnect2",
+        "publisher": "Capcom",
+        "genre": "Action, Hack and slash",
+        "players": "1",
+    },
     "BLUS30464": {
         "desc": "An open-world skateboarding game set in Port Carverton, built around creating a skate team and completing challenges.",
         "releasedate": "20100511T000000",
