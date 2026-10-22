@@ -1,4 +1,4 @@
-ARG WEBSTATION_IMAGE=lscr.io/linuxserver/webstation@sha256:c9d31abdd27a87634d80552283eb2d9aa8d11f1adc29d43618babafa037b927b
+ARG WEBSTATION_IMAGE=lscr.io/linuxserver/webstation@sha256:696dd0fea59f808b2ff160957118cb7247ab95823d2448f7fe46b3fe726d1a03
 FROM ${WEBSTATION_IMAGE}
 
 # Infinity Blade's community PC ports are Windows applications. Keep the

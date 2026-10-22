@@ -39,8 +39,8 @@ services:
       retries: 5
 
   romm:
-    # RomM 5.3.0 image currently deployed; pinned by immutable digest.
-    image: rommapp/romm@sha256:dc586cb3a2c7316fcffb3dc273171b1964523f0f409e989295d26d2199df1d4e
+    # RomM 5.4.0 image, pinned by immutable digest.
+    image: rommapp/romm@sha256:03295f95a6290e752641f9553ac4198b0e5b71b879d57f7b2371b98f608feb54
     restart: unless-stopped
     depends_on:
       mount-guard:
@@ -67,6 +67,10 @@ services:
       # Keep the NAS share itself as the bind source, exposed at RomM's
       # built-in Structure A path: /romm/library/roms/{platform}/{game}.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+      # Test Skate 3 directly from the host's local Desktop copy. This nested,
+      # read-only bind deliberately shadows only the matching NAS title path;
+      # it never copies or writes game data to Sophia.
+      - /home/service/Desktop/Skate3-local/Skate 3 [BLUS30464]:/romm/library/roms/PS3/disk_games/Skate 3 [BLUS30464]:ro
       - ${ROMM_ASSETS_PATH:?set ROMM_ASSETS_PATH in .env}:/romm/assets
       - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/resources:/romm/resources
       - ${APP_DATA_PATH:?set APP_DATA_PATH in .env}/redis:/redis-data
@@ -85,7 +89,7 @@ services:
   # romm-broker, and the supported emulators; it is not a replacement for
   # RomM's existing EmulatorJS player.
   romm-webstation:
-    # Thin local derivative of the pinned WebStation v0.9.0-ls26 image. It
+    # Thin local derivative of the pinned WebStation v0.15.1-ls40 image. It
     # adds Wine only; all emulator, Selkies and broker components remain the
     # upstream image versions recorded in the Dockerfile.
     image: emulator-webstation-infinity-blade:0.1.0
@@ -164,6 +168,9 @@ services:
       - /dev/bus/usb:/dev/bus/usb
       # Match RomM's existing library path exactly. Game data remains read-only.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
+      # Match RomM's local Skate 3 test source so the broker launches the
+      # Desktop copy without moving it into the Sophia library.
+      - /home/service/Desktop/Skate3-local/Skate 3 [BLUS30464]:/romm/library/roms/PS3/disk_games/Skate 3 [BLUS30464]:ro
       # Xbox firmware is kept outside the scanned game library and is read-only
       # in WebStation. Xemu's writable HDD remains under /config.
       - ${XEMU_FIRMWARE_PATH:?set XEMU_FIRMWARE_PATH in .env}:/xemu-firmware:ro
@@ -189,6 +196,14 @@ services:
       - "${VIDEO_GID:-44}"
       - "${RENDER_GID:-992}"
     gpus: all
+    # RPCS3 locks large guest-memory regions.  The WebStation default 8 MiB
+    # memlock limit causes repeated lock failures and can induce paging stalls.
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     shm_size: "1gb"
 
   # Tailnet-only Prometheus endpoint. The proxy keeps Selkies' privileged

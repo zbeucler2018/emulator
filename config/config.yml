@@ -85,9 +85,6 @@ exclude:
         - BLUS31428
         - BLUS31436
         - BLUS31466
-        # Keep the non-booting Skate 3 disc dump on Sophia for host RPCS3
-        # troubleshooting, but do not offer it as a RomM streaming title.
-        - "Skate 3 [BLUS30464]"
         # Black Ops' old extracted PSN folder is read-only in the RomM
         # library.  Its sibling .pkg is the supported WebStation launcher.
         - NPUB30584
