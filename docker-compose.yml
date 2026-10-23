@@ -39,8 +39,8 @@ services:
       retries: 5
 
   romm:
-    # RomM 5.4.0 image, pinned by immutable digest.
-    image: rommapp/romm@sha256:03295f95a6290e752641f9553ac4198b0e5b71b879d57f7b2371b98f608feb54
+    # RomM 5.4.1 linux/amd64 image, pinned by immutable digest.
+    image: rommapp/romm@sha256:923a808be529a834a171b3e045821aeb7e2851f4b6fc9514076785b68a9142f6
     restart: unless-stopped
     depends_on:
       mount-guard:
