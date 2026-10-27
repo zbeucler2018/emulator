@@ -31,6 +31,14 @@ rr = load_module("retro_rewind", ROOT / "scripts" / "retro_rewind.py")
 wrapper = load_module(
     "dolphin_retro_rewind_wrapper", ROOT / "scripts" / "dolphin-retro-rewind-wrapper.py"
 )
+selkies_patch = load_module(
+    "patch_selkies_local_gamepads",
+    ROOT / "scripts" / "patch-selkies-local-gamepads.py",
+)
+player_seat_patch = load_module(
+    "patch_webstation_player_seats",
+    ROOT / "scripts" / "patch-webstation-player-seats.py",
+)
 
 
 def write_iso(path: Path, game_id: bytes = b"RMCE01", revision: int = 0) -> None:
@@ -320,6 +328,65 @@ class DeploymentWiringTests(unittest.TestCase):
             compose,
         )
         self.assertIn("DOLPHIN_FINAL_BIN: /usr/local/bin/dolphin-emu", compose)
+
+
+class SelkiesLocalGamepadPatchTests(unittest.TestCase):
+    def test_host_preserves_two_browser_gamepad_indices(self) -> None:
+        source = "".join(old for _, old, _ in selkies_patch.JS_REPLACEMENTS)
+        patched, changed = selkies_patch.patch_js_text(source)
+        self.assertTrue(changed)
+        self.assertIn("this.isSharedMode?this.controllerSlot-1:e.gamepad.index", patched)
+        self.assertIn("this.isSharedMode?this.controllerSlot-1:e;", patched)
+        self.assertIn("Object.keys(this.gamepadManager.state)", patched)
+        self.assertNotIn(selkies_patch.HOST_SLOT, patched)
+
+    def test_remote_viewer_remains_pinned_to_assigned_slot(self) -> None:
+        source = "".join(old for _, old, _ in selkies_patch.JS_REPLACEMENTS)
+        patched, _ = selkies_patch.patch_js_text(source)
+        self.assertEqual(patched.count("this.isSharedMode?this.controllerSlot-1"), 4)
+        self.assertIn("this.isSharedMode?[this.controllerSlot-1]", patched)
+
+    def test_backend_allows_host_indices_but_retains_viewer_gate(self) -> None:
+        source = selkies_patch.BACKEND_OLD
+        patched, changed = selkies_patch.patch_backend_text(source)
+        self.assertTrue(changed)
+        self.assertIn('if role == "controller":', patched)
+        self.assertIn("if slot is None:", patched)
+        patched_again, changed_again = selkies_patch.patch_backend_text(patched)
+        self.assertFalse(changed_again)
+        self.assertEqual(patched_again, patched)
+
+
+class WebStationPlayerSeatPatchTests(unittest.TestCase):
+    def test_participant_gets_first_free_gamepad(self) -> None:
+        self.assertEqual(
+            player_seat_patch.first_available_slot("participant", 1, []), 2
+        )
+        self.assertEqual(
+            player_seat_patch.first_available_slot("participant", 1, [3]), 2
+        )
+        self.assertEqual(
+            player_seat_patch.first_available_slot("participant", 2, [1, 3]), 4
+        )
+
+    def test_spectator_and_full_room_remain_unassigned(self) -> None:
+        self.assertIsNone(
+            player_seat_patch.first_available_slot("readonly", 1, [])
+        )
+        self.assertIsNone(
+            player_seat_patch.first_available_slot(
+                "participant", 1, [2, 3, 4]
+            )
+        )
+
+    def test_exact_patch_is_idempotent(self) -> None:
+        patched, changed = player_seat_patch.patch_text(player_seat_patch.OLD_BLOCK)
+        self.assertTrue(changed)
+        self.assertIn('"slot": automatic_slot', patched)
+        self.assertIn('permission == "participant"', patched)
+        patched_again, changed_again = player_seat_patch.patch_text(patched)
+        self.assertFalse(changed_again)
+        self.assertEqual(patched_again, patched)
 
 
 if __name__ == "__main__":
