@@ -16,6 +16,8 @@ Older systems continue to run in the browser through EmulatorJS. Webstation stre
   route; Webstation's standalone port 3001 stays unpublished.
 - A shared Dolphin Wii Mii database that survives per-game save cleanup while
   leaving normal RomM Wii save syncing enabled.
+- A direct-launch Retro Rewind integration with atomic official-pack updates,
+  isolated RomM saves, and two indexed browser gamepads.
 - A scoped Infinity Blade I-III Wine backend using the existing WebStation and
   Selkies stream; game files remain user-supplied.
 - Setup, operating, recovery, and ROM-library documentation.
@@ -41,6 +43,7 @@ Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0
 | Asset snapshots | `/mnt/games/Sophia/games/backups/romm-assets` | local game disk |
 | MariaDB, RomM resources, Redis data | `/srv/emulator` | local app host; back up separately |
 | Webstation emulator configuration, firmware, and stream state | `/srv/emulator/webstation` | local app host; back up separately |
+| Versioned Retro Rewind assets and descriptor | `/srv/emulator/retro-rewind` | local app host; read-only in WebStation |
 | Shared Dolphin Wii Mii database | `/srv/emulator/webstation/.romm-shared/dolphin-wii/RFL_DB.dat` | local app host; shared by Wii games |
 
 RomM stores saves and states together under its own per-user/per-ROM asset tree. This is an intentional adaptation of the PRD's separate `saves/` and `states/` directories: RomM needs one asset root to reliably associate both asset types with the user and ROM. The whole asset tree remains on the game disk and is included in the save backup snapshots.
@@ -63,3 +66,6 @@ Pin `ROMM_IMAGE` to a tested image digest before production upgrades; `latest` i
 
 Infinity Blade has a separate, game-specific setup because its community PC
 ports are not included: [Infinity Blade through RomM](docs/infinity-blade.md).
+
+Mario Kart Wii: Retro Rewind installation, activation, controllers, saves, and
+rollback are documented in [docs/retro-rewind.md](docs/retro-rewind.md).

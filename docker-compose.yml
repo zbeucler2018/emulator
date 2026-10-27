@@ -163,9 +163,26 @@ services:
       # shim keeps the shared Wii Mii database outside the per-game NAND tree
       # that webstation-broker clears before every restore.
       DOLPHIN_BIN: /opt/romm/bin/dolphin-mii-wrapper.sh
+      # Keep the Mii wrapper as the broker entry point. Its child only
+      # translates the dedicated Retro Rewind catalogue marker; every other
+      # GameCube/Wii argv reaches Dolphin byte-for-byte unchanged.
+      DOLPHIN_REAL_BIN: /opt/romm/bin/dolphin-retro-rewind-wrapper.py
+      DOLPHIN_FINAL_BIN: /usr/local/bin/dolphin-emu
+      RETRO_REWIND_MARKER: /romm/library/roms/Wii/Mario Kart Wii - Retro Rewind.dol
+      RETRO_REWIND_DESCRIPTOR: /config/retro-rewind/launch/RetroRewind.json
+      # Riivolution's external progress redirect lives inside the Wii subtree
+      # the broker archives per RomM user and catalogue item.
+      RETRO_REWIND_SAVE_ROOT: /config/.local/share/dolphin-emu/Wii/riivolution-save
+      RETRO_REWIND_VIDEO_BACKEND: ${RETRO_REWIND_VIDEO_BACKEND:-Vulkan}
+      # 3x renders above the fixed 1280x720 Selkies canvas and downsamples
+      # cleanly without changing the global desktop size used by Infinity Blade.
+      RETRO_REWIND_INTERNAL_RESOLUTION: ${RETRO_REWIND_INTERNAL_RESOLUTION:-3}
     volumes:
       # Persist emulator configuration, firmware, save staging and broker data.
       - ${WEBSTATION_CONFIG_PATH:?set WEBSTATION_CONFIG_PATH in .env}:/config
+      # Keep the versioned mod pack separate from mutable emulator state. The
+      # launcher writes only to RETRO_REWIND_SAVE_ROOT below /config.
+      - ${RETRO_REWIND_INSTALL_ROOT:-/srv/emulator/retro-rewind}:/config/retro-rewind:ro
       # Real Wii Remotes: forwarded USB Bluetooth adapters may reconnect on a new bus.
       - /dev/bus/usb:/dev/bus/usb
       # Match RomM's existing library path exactly. Game data remains read-only.
@@ -179,6 +196,7 @@ services:
       - ./scripts/xemu-bios-wrapper.sh:/opt/romm/bin/xemu-bios-wrapper.sh:ro
       - ./scripts/pcsx2-opengl-wrapper.sh:/opt/romm/bin/pcsx2-opengl-wrapper.sh:ro
       - ./scripts/dolphin-mii-wrapper.sh:/opt/romm/bin/dolphin-mii-wrapper.sh:ro
+      - ./scripts/dolphin-retro-rewind-wrapper.py:/opt/romm/bin/dolphin-retro-rewind-wrapper.py:ro
       - ./scripts/infinity-blade-wine.sh:/opt/romm/bin/infinity-blade-wine:ro
       - ./config/webstation/sitecustomize.py:/opt/romm/overrides/sitecustomize.py:ro
       - ./config/webstation/infinity-blade.py:/opt/romm/overrides/infinity_blade.py:ro

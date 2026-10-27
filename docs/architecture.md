@@ -57,6 +57,14 @@ broker clears/restores only `drive_c/users/abc/Documents/My Games` for the
 selected RomM user and game. This keeps the DirectX/VC++ setup local and avoids
 shipping an entire Wine prefix in every save archive.
 
+Retro Rewind is represented by a small owned `.dol` marker so RomM gives the
+mod its own catalogue and save identity. The Dolphin launcher translates only
+that exact marker to an official Riivolution JSON descriptor; the base RVZ is
+never copied or changed. Retro Rewind's external Riivolution save path is
+symlinked into Dolphin's broker-managed `Wii` subtree, so its licenses and
+progress participate in the same per-user/per-ROM restore and upload contract.
+The existing Mii hard link remains the sole intentionally shared Wii file.
+
 ## Platform baseline
 
 The supplied config selects a conservative core for GB/GBC/GBA, NES, SNES, N64, Master System, Game Gear, and Genesis. RomM/EmulatorJS also has support for the optional Neo Geo Pocket and WonderSwan families. N64 results vary by device and game; it is intentionally the Phase 1 ceiling. Nintendo DS and disc-based platforms are out of scope.
