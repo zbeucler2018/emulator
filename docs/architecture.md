@@ -8,8 +8,7 @@ iPhone, iPad, or desktop browser
 Ubuntu application host
   ├─ RomM + built-in EmulatorJS (Docker)
   ├─ MariaDB / Redis-compatible cache (local disk)
-  └─ CIFS mount: /mnt/sophia/games
-                └─ Corsair NAS
+  └─ ext4 game disk: /mnt/games/Sophia/games
                    ├─ <platform>/         (read-only to RomM)
                    ├─ saves/romm-assets/ (RomM saves + states)
                    └─ backups/romm-assets/snapshots/
@@ -19,19 +18,19 @@ Ubuntu application host
 
 RomM scans and presents the ROM library, keeps metadata locally, and runs EmulatorJS in the user's browser. The browser downloads the ROM and executes WebAssembly locally; application-host CPU is not used for frame rendering.
 
-The NAS is the canonical store for ROMs and player progress. The local application host owns only replaceable state: database rows, downloaded artwork, and Redis-compatible task data. No database directory is placed on CIFS/SMB.
+The dedicated game disk is the canonical store for ROMs and player progress. The application host's system disk owns only replaceable state: database rows, downloaded artwork, and Redis-compatible task data. No database directory is placed in the game library.
 
-The RomM container has a read-only ROM mount. It can write only to its assets mount, which points to `games/saves/romm-assets` on the NAS. This asset root contains RomM's per-user/per-ROM saves, save states, and associated screenshots.
+The RomM container has a read-only ROM mount. It can write only to its assets mount, which points to `games/saves/romm-assets` on the game disk. This asset root contains RomM's per-user/per-ROM saves, save states, and associated screenshots.
 
 ## Storage safety
 
 `scripts/mount-check.sh` verifies all of the following before the stack starts:
 
-- `/mnt/sophia/games` exists and is a `cifs` filesystem from the configured Corsair share.
+- `/mnt/games/Sophia/games` exists on the configured `ext4` game disk.
 - `saves/romm-assets/` exists beneath it.
 - a manually-created `.emulator-nas-marker` file exists at its root.
 
-The Compose `mount-guard` repeats a reduced check as a mandatory dependency. The host-side preflight is the authoritative check because it can inspect the CIFS source directly. This prevents a failed mount from becoming an empty local directory that silently accepts writes.
+The Compose `mount-guard` repeats the check as a mandatory dependency. The host-side preflight is authoritative because it can inspect the backing filesystem directly. This prevents a missing disk from becoming an empty directory on the system disk that silently accepts writes.
 
 ## Save guarantees and limits
 
@@ -39,7 +38,7 @@ RomM's EmulatorJS integration stores native saves and save states on the server.
 
 This substantially reduces loss risk from closing a tab, but it cannot make a browser crash, iOS background termination, or dropped network connection transactional. The browser must first observe the game's write, then upload it. Keep the browser open until its save-sync status returns, and prefer native in-game saves as the primary durable record. Save states are secondary and core/version-specific; keep a stable core per platform if you depend on them.
 
-If connectivity drops, the browser cache may temporarily contain newer state than the server. Treat the server's visible save-sync timestamp and the NAS backup as the durability signal, not local browser storage.
+If connectivity drops, the browser cache may temporarily contain newer state than the server. Treat the server's visible save-sync timestamp and the game-disk backup as the durability signal, not local browser storage.
 
 Webstation's Dolphin broker deliberately clears `StateSaves`, `GC`, and `Wii`
 at every game activation, before restoring the selected RomM save archive.

@@ -19,10 +19,10 @@ The corresponding community announcements are [IB1](https://www.reddit.com/r/inf
 
 ## One-time installation
 
-Extract each supplied port on Sophia so Box sees this layout:
+Extract each supplied port on the local game disk using this layout:
 
 ```text
-/mnt/sophia/games/Windows/
+/mnt/games/Sophia/games/Windows/
   Infinity Blade/
     Binaries/Win64/IB1.exe
     SwordGame/...

@@ -35,28 +35,52 @@ TITLE_OVERRIDES = {
         "Dead Space",
         "NPUB30569",
     ),
+    "digital_games/Call of Duty - Black Ops (NPUB30584).pkg": (
+        "Call of Duty: Black Ops",
+        "NPUB30584",
+    ),
 }
 
 # Offline presentation metadata for the titles currently verified in this
-# library.  This is deliberately small and explicit: folders that are merely
-# PS3 game-data or updates must never acquire metadata that makes them look
-# launchable.  All values are local gamelist fields and can be replaced by a
-# configured online provider later.
+# library. This is deliberately explicit: folders that are merely PS3 game
+# data or updates must never acquire metadata that makes them look launchable.
+# All values are local gamelist fields and can be replaced by a configured
+# online provider later.
 METADATA_OVERRIDES = {
+    "BLUS30537": {
+        "desc": "Ezio Auditore builds a new Assassin brotherhood in Rome while fighting the Borgia and uncovering another piece of the conflict between Assassins and Templars.",
+        "releasedate": "20101116T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, Adventure, Stealth",
+        "family": "Assassin's Creed",
+        "players": "1-8",
+    },
+    "BLUS30991": {
+        "desc": "During the American Revolution, Connor fights for liberty while Desmond's modern-day story brings the conflict between Assassins and Templars toward its conclusion.",
+        "releasedate": "20121030T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, Adventure, Stealth",
+        "family": "Assassin's Creed",
+        "players": "1-8",
+    },
     "BLUS31176": {
         "desc": "An open-world action-adventure game about hacker Aiden Pearce using Chicago's connected infrastructure to pursue his own agenda.",
         "releasedate": "20140527T000000",
         "developer": "Ubisoft Montreal",
         "publisher": "Ubisoft",
-        "genre": "Action, Adventure",
-        "players": "1",
+        "genre": "Action, Adventure, Open world",
+        "family": "Watch Dogs",
+        "players": "1-8",
     },
-    "BLUS30566": {
-        "desc": "A high-speed racing game built around police pursuits, exotic cars, and competing as either a racer or a cop.",
-        "releasedate": "20101116T000000",
-        "developer": "Criterion Games",
-        "publisher": "Electronic Arts",
-        "genre": "Racing",
+    "NPUB31254": {
+        "desc": "An open-world action-adventure game about hacker Aiden Pearce using Chicago's connected infrastructure to pursue his own agenda.",
+        "releasedate": "20140527T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, Adventure, Open world",
+        "family": "Watch Dogs",
         "players": "1-8",
     },
     "BLUS30721": {
@@ -65,6 +89,7 @@ METADATA_OVERRIDES = {
         "developer": "CyberConnect2",
         "publisher": "Capcom",
         "genre": "Action, Hack and slash",
+        "family": "Asura's Wrath",
         "players": "1",
     },
     "BLUS30464": {
@@ -73,6 +98,7 @@ METADATA_OVERRIDES = {
         "developer": "EA Black Box",
         "publisher": "Electronic Arts",
         "genre": "Sports, Skateboarding",
+        "family": "Skate",
         "players": "1-6",
     },
     "BLUS30089": {
@@ -81,7 +107,233 @@ METADATA_OVERRIDES = {
         "developer": "Ubisoft Montreal",
         "publisher": "Ubisoft",
         "genre": "Action, Adventure",
+        "family": "Assassin's Creed",
         "players": "1",
+    },
+    "NPUB30742": {
+        "desc": "A modern military first-person shooter featuring a cinematic campaign and large-scale multiplayer battles with infantry, vehicles, and destructible environments.",
+        "releasedate": "20111025T000000",
+        "developer": "DICE",
+        "publisher": "Electronic Arts",
+        "genre": "Action, First-person shooter",
+        "family": "Battlefield",
+        "players": "1-24",
+    },
+    "NPUB30065": {
+        "desc": "A high-definition console release of the original Call of Duty campaign, following American, British, and Soviet soldiers across major battles of World War II.",
+        "releasedate": "20091203T000000",
+        "developer": "Infinity Ward, Aspyr",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, World War II",
+        "family": "Call of Duty",
+        "players": "1-4",
+    },
+    "BLUS30838": {
+        "desc": "Task Force 141 pursues Vladimir Makarov as a global conflict escalates across New York, London, Paris, and other battlefields.",
+        "releasedate": "20111108T000000",
+        "developer": "Infinity Ward, Sledgehammer Games",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS30072": {
+        "desc": "A modern military first-person shooter in which U.S. Marines and British SAS operatives confront an ultranationalist threat across a cinematic campaign.",
+        "releasedate": "20071105T000000",
+        "developer": "Infinity Ward",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS31466": {
+        "desc": "A futuristic Call of Duty campaign built around exoskeleton movement and private military conflict, with competitive multiplayer and cooperative Exo Survival.",
+        "releasedate": "20141104T000000",
+        "developer": "Sledgehammer Games",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Science fiction",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS31270": {
+        "desc": "After a devastating attack reshapes the United States, an elite unit called the Ghosts fights the technologically superior Federation.",
+        "releasedate": "20131105T000000",
+        "developer": "Infinity Ward",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "NPUB30584": {
+        "desc": "A Cold War first-person shooter following covert operative Alex Mason through deniable operations, with competitive multiplayer and the series' Zombies mode.",
+        "releasedate": "20101109T000000",
+        "developer": "Treyarch",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Cold War",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS31011": {
+        "desc": "A branching near-future campaign connects Cold War operations to a 2025 conflict, accompanied by competitive multiplayer and an expanded Zombies mode.",
+        "releasedate": "20121113T000000",
+        "developer": "Treyarch",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Science fiction",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "NPUB31665": {
+        "desc": "The PlayStation 3 edition focuses on competitive multiplayer and Zombies, bringing specialists, futuristic movement, and Shadows of Evil to the older console.",
+        "releasedate": "20151106T000000",
+        "developer": "Treyarch, Beenox, Mercenary Technology",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Science fiction",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS30192": {
+        "desc": "A World War II first-person shooter covering brutal Pacific and Eastern Front campaigns, with cooperative play, multiplayer, and the debut of Nazi Zombies.",
+        "releasedate": "20081111T000000",
+        "developer": "Treyarch",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, World War II",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BLUS31146": {
+        "desc": "A third-person action game starring Deadpool, mixing gunplay, melee combat, fourth-wall-breaking humor, and appearances from across the Marvel universe.",
+        "releasedate": "20130625T000000",
+        "developer": "High Moon Studios",
+        "publisher": "Activision",
+        "genre": "Action, Hack and slash, Third-person shooter",
+        "family": "Marvel",
+        "players": "1",
+    },
+    "BLUS30443": {
+        "desc": "A dark action role-playing game set in the fallen kingdom of Boletaria, built around deliberate combat, difficult encounters, and distinctive online interactions.",
+        "releasedate": "20091006T000000",
+        "developer": "FromSoftware",
+        "publisher": "Atlus",
+        "genre": "Action, Role-playing, Soulslike",
+        "family": "Souls",
+        "players": "1-4",
+    },
+    "NPUB30643": {
+        "desc": "A free-to-play online first-person shooter set in the EVE universe. Its battles affected EVE Online, but the official servers closed in May 2016.",
+        "releasedate": "20130514T000000",
+        "developer": "CCP Shanghai",
+        "publisher": "CCP Games",
+        "genre": "Action, First-person shooter, MMO, Online-only",
+        "family": "EVE",
+        "players": "Online multiplayer",
+    },
+    "NPUB30825": {
+        "desc": "An open-world first-person shooter in which Jason Brody explores the Rook Islands, hunts wildlife, captures outposts, and confronts pirate leader Vaas Montenegro.",
+        "releasedate": "20121204T000000",
+        "developer": "Ubisoft Montreal",
+        "publisher": "Ubisoft",
+        "genre": "Action, First-person shooter, Open world",
+        "family": "Far Cry",
+        "players": "1-14",
+    },
+    "NPUB30702": {
+        "desc": "Niko Bellic arrives in Liberty City seeking a new life and is drawn into its criminal underworld in an open-world story of loyalty, violence, and the American dream.",
+        "releasedate": "20080429T000000",
+        "developer": "Rockstar North",
+        "publisher": "Rockstar Games",
+        "genre": "Action, Adventure, Open world",
+        "family": "Grand Theft Auto",
+        "players": "1-16",
+    },
+    "BLUS30540": {
+        "desc": "A family-friendly action-adventure spanning stories from The Clone Wars animated series, with large battles, vehicle missions, character switching, and cooperative play.",
+        "releasedate": "20110322T000000",
+        "developer": "Traveller's Tales",
+        "publisher": "LucasArts",
+        "genre": "Action, Adventure, Family",
+        "family": "LEGO Star Wars",
+        "players": "1-2",
+    },
+    "BLUS30079": {
+        "desc": "A humorous LEGO retelling of all six original Star Wars films, combining platforming, puzzles, collectibles, and drop-in cooperative play.",
+        "releasedate": "20071106T000000",
+        "developer": "Traveller's Tales",
+        "publisher": "LucasArts",
+        "genre": "Action, Adventure, Family",
+        "family": "LEGO Star Wars",
+        "players": "1-2",
+    },
+    "BLUS30377": {
+        "desc": "Task Force 141 hunts Russian ultranationalist Vladimir Makarov in a cinematic modern-warfare campaign, with competitive multiplayer and cooperative Special Ops missions.",
+        "releasedate": "20091110T000000",
+        "developer": "Infinity Ward",
+        "publisher": "Activision",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Call of Duty",
+        "players": "1-18",
+    },
+    "BCUS98242": {
+        "desc": "An arcade off-road racing game set during a collapsing city's natural disasters, featuring transforming tracks, aggressive opponents, and split-screen or online racing.",
+        "releasedate": "20110503T000000",
+        "developer": "Evolution Studios",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Racing, Arcade, Off-road",
+        "family": "MotorStorm",
+        "players": "1-16",
+    },
+    "BLUS30566": {
+        "desc": "A high-speed racing game built around police pursuits, exotic cars, and competing as either a racer or a cop through the connected Autolog system.",
+        "releasedate": "20101116T000000",
+        "developer": "Criterion Games",
+        "publisher": "Electronic Arts",
+        "genre": "Racing, Arcade",
+        "family": "Need for Speed",
+        "players": "1-8",
+    },
+    "NPUA30073": {
+        "desc": "A cooperative first-person shooter built around replayable heists, coordinated objectives, escalating police assaults, and character progression.",
+        "releasedate": "20111018T000000",
+        "developer": "Overkill Software",
+        "publisher": "Sony Online Entertainment",
+        "genre": "Action, First-person shooter, Cooperative",
+        "family": "Payday",
+        "players": "1-4",
+    },
+    "NPUB31257": {
+        "desc": "The leader of the Saints becomes President of the United States and battles an alien invasion inside a virtual Steelport using weapons, vehicles, and superpowers.",
+        "releasedate": "20130820T000000",
+        "developer": "Volition",
+        "publisher": "Deep Silver",
+        "genre": "Action, Adventure, Open world",
+        "family": "Saints Row",
+        "players": "1-2",
+    },
+    "NPUA80665": {
+        "desc": "Master thief Sly Cooper reunites his gang for a globe-spanning series of heists to reclaim the Cooper family vault, mixing stealth, platforming, and playable allies.",
+        "releasedate": "20050926T000000",
+        "developer": "Sucker Punch Productions",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Action, Platformer, Stealth",
+        "family": "Sly Cooper",
+        "players": "1-2",
+    },
+    "NPUB30035": {
+        "desc": "A physics-driven vehicular soccer game from Psyonix in which rocket-powered cars compete to drive an oversized ball into the opposing goal.",
+        "releasedate": "20081009T000000",
+        "developer": "Psyonix",
+        "publisher": "Psyonix",
+        "genre": "Sports, Racing, Vehicular soccer",
+        "family": "Rocket League",
+        "players": "1-8",
+    },
+    "BLUS30226": {
+        "desc": "An action game set during the War of the Ring, letting players fight large battles as warriors, archers, scouts, and mages on either side of the conflict.",
+        "releasedate": "20090113T000000",
+        "developer": "Pandemic Studios",
+        "publisher": "Electronic Arts",
+        "genre": "Action, Fantasy, Hack and slash",
+        "family": "The Lord of the Rings",
+        "players": "1-16",
     },
     "NPUB30569": {
         "desc": "A survival-horror game aboard the mining ship USG Ishimura, starring engineer Isaac Clarke.",
@@ -89,15 +341,8 @@ METADATA_OVERRIDES = {
         "developer": "EA Redwood Shores",
         "publisher": "Electronic Arts",
         "genre": "Survival horror, Shooter",
+        "family": "Dead Space",
         "players": "1",
-    },
-    "NPUA30073": {
-        "desc": "A cooperative first-person shooter built around replayable heists.",
-        "releasedate": "20111018T000000",
-        "developer": "OVERKILL Software",
-        "publisher": "Sony Online Entertainment",
-        "genre": "First-person shooter",
-        "players": "1-4",
     },
     "BLES80608": {
         "desc": "multiMAN's compatibility mode: a PlayStation 3 homebrew game and content manager.",
@@ -131,8 +376,16 @@ METADATA_OVERRIDES = {
 # without turning them into library entries.
 COVER_OVERRIDES = {
     "disk_games/AC": ".romm-assets/covers/assassins-creed.jpg",
+    "digital_games/Call of Duty - Black Ops (NPUB30584).pkg": ".romm-assets/covers/call-of-duty-black-ops.png",
     "digital_games/JpnzMoXYQxLVoDQuYjTLkRaBMTwvKkRUpTPFZPObbAVkNQgBbGqlAMtQmcChmbokRQeHvcnocHDqdrGNpbYVKYpuQXPBSSZurxive.pkg": ".romm-assets/covers/dead-space.jpg",
     "digital_games/NPUA30073": ".romm-assets/covers/payday-the-heist.jpg",
+}
+
+# Two entries do not have a usable PIC1.PNG beside the launchable game. Keep
+# their already-owned local artwork inside the hidden PS3 metadata directory.
+SCREENSHOT_OVERRIDES = {
+    "digital_games/Call of Duty - Black Ops (NPUB30584).pkg": ".romm-assets/screenshots/NPUB30584.png",
+    "digital_games/NPUB30065": ".romm-assets/screenshots/NPUB30065.png",
 }
 
 
@@ -243,21 +496,47 @@ def build_xml(platform_dir: Path, games: dict[Path, tuple[str, str]]) -> Element
         SubElement(game, "desc").text = metadata.get(
             "desc", f"PlayStation 3 title ID: {serial}" if serial else ""
         )
-        for field in ("releasedate", "developer", "publisher", "genre", "players"):
+        for field in (
+            "releasedate",
+            "developer",
+            "publisher",
+            "family",
+            "genre",
+            "players",
+        ):
             if value := metadata.get(field):
                 SubElement(game, field).text = value
         cover_override = COVER_OVERRIDES.get(game_dir.as_posix())
         if cover_override and (platform_dir / cover_override).is_file():
             SubElement(game, "cover").text = f"./{cover_override}"
+        else:
+            # Prefer the title's own icon as a local, offline cover fallback.
+            # Disc dumps keep it in PS3_GAME; installed titles keep it at
+            # their root.
+            for icon in (
+                platform_dir / game_dir / "ICON0.PNG",
+                platform_dir / game_dir / "PS3_GAME" / "ICON0.PNG",
+            ):
+                if icon.is_file():
+                    SubElement(game, "cover").text = (
+                        f"./{icon.relative_to(platform_dir).as_posix()}"
+                    )
+                    break
+        screenshot_override = SCREENSHOT_OVERRIDES.get(game_dir.as_posix())
+        if screenshot_override and (platform_dir / screenshot_override).is_file():
+            SubElement(game, "screenshot").text = f"./{screenshot_override}"
             continue
-        # Prefer the title's own icon as a local, offline cover fallback. Disc
-        # dumps keep it in PS3_GAME; installed titles keep it at their root.
-        for icon in (
-            platform_dir / game_dir / "ICON0.PNG",
-            platform_dir / game_dir / "PS3_GAME" / "ICON0.PNG",
+        # PIC1.PNG is the title-provided XMB background and is a useful,
+        # authentic gallery image. Prefer only the title-root copy: save-data
+        # and nested content can contain unrelated per-level artwork.
+        for screenshot in (
+            platform_dir / game_dir / "PIC1.PNG",
+            platform_dir / game_dir / "PS3_GAME" / "PIC1.PNG",
         ):
-            if icon.is_file():
-                SubElement(game, "cover").text = f"./{icon.relative_to(platform_dir).as_posix()}"
+            if screenshot.is_file():
+                SubElement(game, "screenshot").text = (
+                    f"./{screenshot.relative_to(platform_dir).as_posix()}"
+                )
                 break
     tree = ElementTree(root)
     indent(tree, space="  ")

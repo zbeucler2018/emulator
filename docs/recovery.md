@@ -1,24 +1,24 @@
 # Recovery
 
-## NAS unavailable
+## Game disk unavailable
 
-Do not start or restart the stack while `/mnt/games` is missing. `scripts/mount-check.sh` should fail; that is the safe outcome. Restore CIFS connectivity, verify the NAS marker, then start services.
+Do not start or restart the stack while `/mnt/games` is missing. `scripts/mount-check.sh` should fail; that is the safe outcome. Reconnect and mount the game disk, verify the marker, then start services.
 
-An already-loaded browser game may keep running, but its newer progress is not durable until RomM successfully receives it. Once the NAS is restored, reopen the game and verify the server-side save timestamp before assuming the progress survived.
+An already-loaded browser game may keep running, but its newer progress is not durable until RomM successfully receives it. Once the disk is restored, reopen the game and verify the server-side save timestamp before assuming the progress survived.
 
 ## Rebuild the application host
 
-1. Reinstall Docker, Compose, Tailscale, SMB client tools, `rsync`, and `curl`.
-2. Recreate the root-only SMB credential file and mount `/mnt/games`.
+1. Reinstall Docker, Compose, Tailscale, `rsync`, and `curl`.
+2. Reconnect the game disk and mount it at `/mnt/games` using its filesystem UUID.
 3. Restore this repository and `.env` from a secure backup; do not regenerate `ROMM_AUTH_SECRET_KEY` unless starting a new authentication domain.
-4. Restore `/srv/emulator` from its local backup if you need existing accounts, metadata, and artwork. The ROMs and RomM assets already remain on Corsair.
+4. Restore `/srv/emulator` from its local backup if you need existing accounts, metadata, and artwork. The ROMs and RomM assets remain on the game disk.
 5. Run `scripts/preflight.sh`, start Compose, restore Tailscale Serve, and verify `scripts/health-check.sh`.
 
-If `/srv/emulator` is not recoverable, the NAS still preserves ROMs plus RomM asset files, but the replacement database will not automatically know the old accounts/asset associations. Restore the database whenever possible; this is why the local app data needs its own backup.
+If `/srv/emulator` is not recoverable, the game disk still preserves ROMs plus RomM asset files, but the replacement database will not automatically know the old accounts/asset associations. Restore the database whenever possible; this is why the local app data needs its own backup.
 
 ## Recover an older save
 
-Save snapshots live at `/mnt/games/backups/romm-assets/snapshots/<UTC timestamp>/`. First stop RomM or ensure the player is not actively syncing. Copy the specific older asset file out of a snapshot to a temporary safe location, then use RomM's save upload UI to import it for the matching ROM and user. This avoids guessing RomM's internal asset identifiers or overwriting a newer active asset directly.
+Save snapshots live at `/mnt/games/Sophia/games/backups/romm-assets/snapshots/<UTC timestamp>/`. First stop RomM or ensure the player is not actively syncing. Copy the specific older asset file out of a snapshot to a temporary safe location, then use RomM's save upload UI to import it for the matching ROM and user. This avoids guessing RomM's internal asset identifiers or overwriting a newer active asset directly.
 
 ## Upgrade safely
 

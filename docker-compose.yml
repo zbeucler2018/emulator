@@ -1,7 +1,7 @@
 name: emulator
 
 services:
-  # Refuses to let the app start when the CIFS share or its marker is absent.
+  # Refuses to let the app start when the configured storage or marker is absent.
   # This is intentionally a one-shot dependency, not an optional health hint.
   mount-guard:
     # Alpine 3.22 image currently deployed; pinned by immutable digest.
@@ -11,8 +11,10 @@ services:
       GAMES_MOUNT: ${GAMES_MOUNT:?set GAMES_MOUNT in .env}
       ROM_LIBRARY_PATH: ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}
       ROMM_ASSETS_PATH: ${ROMM_ASSETS_PATH:?set ROMM_ASSETS_PATH in .env}
-      NAS_SERVER: ${NAS_SERVER:?set NAS_SERVER in .env}
-      NAS_SHARE: ${NAS_SHARE:?set NAS_SHARE in .env}
+      STORAGE_TYPE: ${STORAGE_TYPE:-cifs}
+      EXPECTED_FS_TYPE: ${EXPECTED_FS_TYPE:-cifs}
+      NAS_SERVER: ${NAS_SERVER:-}
+      NAS_SHARE: ${NAS_SHARE:-}
       NAS_MARKER: ${NAS_MARKER:-.emulator-nas-marker}
     volumes:
       - ${GAMES_MOUNT:?set GAMES_MOUNT in .env}:${GAMES_MOUNT}:ro
@@ -64,7 +66,7 @@ services:
       STREAMING_SAVE_TIMEOUT: ${STREAMING_SAVE_TIMEOUT:-120}
       STREAMING_STATE_HISTORY_LIMIT: ${STREAMING_STATE_HISTORY_LIMIT:-50}
     volumes:
-      # Keep the NAS share itself as the bind source, exposed at RomM's
+      # Keep the game library itself as the bind source, exposed at RomM's
       # built-in Structure A path: /romm/library/roms/{platform}/{game}.
       - ${ROM_LIBRARY_PATH:?set ROM_LIBRARY_PATH in .env}:/romm/library/roms:ro
       # Test Skate 3 directly from the host's local Desktop copy. This nested,
@@ -180,6 +182,9 @@ services:
       - ./scripts/infinity-blade-wine.sh:/opt/romm/bin/infinity-blade-wine:ro
       - ./config/webstation/sitecustomize.py:/opt/romm/overrides/sitecustomize.py:ro
       - ./config/webstation/infinity-blade.py:/opt/romm/overrides/infinity_blade.py:ro
+      # Keep the Demon’s Souls render fix reproducible across container/config
+      # recreation without changing RPCS3 defaults for other PS3 titles.
+      - ./config/rpcs3-webstation-demons-souls.yml:/config/.config/rpcs3/custom_configs/config_BLUS30443.yml:ro
       # The desktop icon uses the same shim, so Miis created in an admin
       # desktop session enter the shared database before the next game launch.
       - ./config/webstation/dolphin-emu.desktop:/config/Desktop/dolphin-emu.desktop:ro

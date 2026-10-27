@@ -1,6 +1,6 @@
 # Adding ROMs
 
-Copy new files into the Corsair NAS under `games/<platform>/`. The deployed layout is:
+Copy new files into `/mnt/games/Sophia/games/<platform>/`. The deployed layout is:
 
 ```text
 games/
@@ -10,7 +10,7 @@ games/
     Example Game (USA).sfc
 ```
 
-Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. Compose mounts the NAS share at RomM's standard `/romm/library/roms` path, so the existing `games/<platform>/<game>` filesystem is scanned as `roms/<platform>/<game>` without moving files. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `N3DS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files. N3DS streams through Azahar in WebStation; extracted `.cci` and `.3ds` images must not remain archived.
+Keep the original No-Intro collection intact. Do not rename, delete, or flatten variants merely to simplify the UI. Compose mounts the local game library at RomM's standard `/romm/library/roms` path, so the existing `games/<platform>/<game>` filesystem is scanned as `roms/<platform>/<game>` without moving files. `config/config.yml` maps this library's `GBA`, `N64`, `NDS`, `N3DS`, `NES`, `GameCube`, and `PS2` directory names to RomM platform slugs without moving files. N3DS streams through Azahar in WebStation; extracted `.cci` and `.3ds` images must not remain archived.
 
 After copying ROMs, trigger a RomM library scan in the UI. The ROM mount is read-only, so scanning cannot modify the collection. Configure at least one metadata provider in `.env` before the first large scan for richer covers and descriptions.
 
@@ -22,8 +22,8 @@ directory name, while their human-readable title is stored in that game's
 directories. Generate RomM's local metadata sidecar instead:
 
 ```bash
-python3 scripts/generate-ps3-gamelist.py /mnt/sophia/games/PS3 --dry-run
-python3 scripts/generate-ps3-gamelist.py /mnt/sophia/games/PS3
+python3 scripts/generate-ps3-gamelist.py /mnt/games/Sophia/games/PS3 --dry-run
+python3 scripts/generate-ps3-gamelist.py /mnt/games/Sophia/games/PS3
 ```
 
 This creates only `PS3/gamelist.xml`; it never moves, renames, extracts, or

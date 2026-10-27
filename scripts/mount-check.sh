@@ -1,5 +1,6 @@
 #!/bin/sh
-# Fail closed if the Corsair CIFS share is missing or a local directory replaced it.
+# Fail closed if the configured storage mount is missing or a plain directory
+# on the host root filesystem replaced it.
 set -eu
 
 games_mount="${GAMES_MOUNT:-/mnt/games}"
@@ -8,6 +9,8 @@ assets_path="${ROMM_ASSETS_PATH:-${games_mount}/saves/romm-assets}"
 nas_server="${NAS_SERVER:-corsair}"
 nas_share="${NAS_SHARE:-games}"
 nas_marker="${NAS_MARKER:-.emulator-nas-marker}"
+storage_type="${STORAGE_TYPE:-cifs}"
+expected_fs_type="${EXPECTED_FS_TYPE:-$storage_type}"
 
 fail() { printf '%s\n' "mount check: $*" >&2; exit 1; }
 
@@ -18,18 +21,24 @@ fail() { printf '%s\n' "mount check: $*" >&2; exit 1; }
 
 if command -v findmnt >/dev/null 2>&1; then
   # A systemd automount can make findmnt report both an autofs layer and the
-  # CIFS mount beneath it. Select the actual network filesystem explicitly.
-  fs_type="$(findmnt -n -t cifs -o FSTYPE -T "$games_mount" 2>/dev/null || true)"
-  source="$(findmnt -n -t cifs -o SOURCE -T "$games_mount" 2>/dev/null || true)"
-  [ "$fs_type" = "cifs" ] || fail "$games_mount is $fs_type, expected cifs"
-  case "$source" in
-    "//$nas_server/$nas_share"*|"//$nas_server"*) ;;
-    *) fail "mounted source '$source' does not match //$nas_server/$nas_share" ;;
-  esac
+  # backing filesystem. Select the configured filesystem explicitly.
+  fs_type="$(findmnt -n -t "$expected_fs_type" -o FSTYPE -T "$games_mount" 2>/dev/null || true)"
+  source="$(findmnt -n -t "$expected_fs_type" -o SOURCE -T "$games_mount" 2>/dev/null || true)"
+  [ "$fs_type" = "$expected_fs_type" ] || fail "$games_mount is $fs_type, expected $expected_fs_type"
+  if [ "$storage_type" = "cifs" ]; then
+    case "$source" in
+      "//$nas_server/$nas_share"*|"//$nas_server"*) ;;
+      *) fail "mounted source '$source' does not match //$nas_server/$nas_share" ;;
+    esac
+  fi
 else
-  # Alpine mount-guard does not include findmnt. A bind mount of a CIFS share
-  # is still represented as cifs in mountinfo on supported Docker hosts.
-  grep -Eq " - cifs .*$" /proc/self/mountinfo || fail "no cifs filesystem visible in container"
+  # Alpine mount-guard does not include findmnt. Docker bind mounts retain the
+  # backing filesystem type in mountinfo, for both CIFS and local ext4 storage.
+  grep -Eq " - ${expected_fs_type} .*$" /proc/self/mountinfo || fail "no $expected_fs_type filesystem visible in container"
 fi
 
-printf 'mount check: NAS share %s is available at %s\n' "$nas_server/$nas_share" "$games_mount"
+if [ "$storage_type" = "cifs" ]; then
+  printf 'mount check: NAS share %s is available at %s\n' "$nas_server/$nas_share" "$games_mount"
+else
+  printf 'mount check: local %s storage is available at %s\n' "$expected_fs_type" "$games_mount"
+fi

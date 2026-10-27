@@ -2,34 +2,29 @@
 
 ## Prerequisites
 
-Use an Ubuntu application host with Docker Engine + Compose, Tailscale, `cifs-utils`, `rsync`, `curl`, and `util-linux` installed. The host must already be joined to the intended tailnet.
+Use an Ubuntu application host with Docker Engine + Compose, Tailscale, `rsync`, `curl`, and `util-linux` installed. The host must already be joined to the intended tailnet.
 
-## 1. Mount the Corsair share
+## 1. Mount the local game disk
 
-Create the NAS share and directories once on Corsair:
+The dedicated ext4 disk is mounted at `/mnt/games`; this deployment uses the
+copied Sophia tree below it:
 
 ```text
-games/
+/mnt/games/Sophia/games/
   .emulator-nas-marker
-  roms/
+  <platform>/
   saves/romm-assets/
   backups/romm-assets/
 ```
 
-The marker is a deliberate, non-secret sentinel. Do not create it on the application host. Its absence makes the deployment refuse to start.
+The marker is a deliberate, non-secret sentinel copied with the library. Its
+absence makes the deployment refuse to start.
 
-On Ubuntu, create a root-only credentials file such as `/etc/samba/credentials/corsair-games`:
-
-```ini
-username=YOUR_SAMBA_USER
-password=YOUR_SAMBA_PASSWORD
-domain=WORKGROUP
-```
-
-Set its mode to `0600`, then add a CIFS entry like this to `/etc/fstab` (replace host/share values):
+Mount the filesystem by UUID so reconnecting another USB/SATA device cannot
+change which disk backs the library:
 
 ```fstab
-//corsair/games /mnt/games cifs credentials=/etc/samba/credentials/corsair-games,_netdev,x-systemd.automount,x-systemd.requires=network-online.target,uid=1000,gid=1000,file_mode=0660,dir_mode=0770,vers=3.0 0 0
+UUID=eb6fa217-103b-415e-b16d-f97143f90c7a /mnt/games ext4 defaults,nofail 0 2
 ```
 
 Mount it and prove the check passes:
@@ -40,7 +35,8 @@ sudo mount /mnt/games
 findmnt -T /mnt/games
 ```
 
-Use the actual Docker-running user's UID/GID for the mount options if they differ. Do not put a Samba password into `/etc/fstab`, `.env`, or Git.
+The deployment user must be able to write the RomM asset and backup directories;
+game content remains read-only inside the application containers.
 
 ## 2. Configure the application
 
@@ -52,7 +48,7 @@ chmod 600 .env
 
 Set `ROMM_BASE_URL` to the tailnet URL that Tailscale Serve reports. Generate unique values for the three required secrets; the two MariaDB passwords must be different.
 
-Create the replaceable, local application-data directory once. This must be on the Ubuntu host's local filesystem, not the NAS mount:
+Create the replaceable application-data directory once. Keep it outside the game-library tree:
 
 ```bash
 sudo install -d -o "$USER" -g "$(id -gn)" -m 0750 /srv/emulator
@@ -199,13 +195,13 @@ Open the Tailscale Serve URL from iPhone Chrome, Safari, or Firefox. Create the 
 1. Launch it, use the game’s own save feature, and wait for the save-sync indication.
 2. Create an explicit state as a convenience snapshot.
 3. Close the browser, reopen RomM, select the save, and verify resume.
-4. Run `scripts/backup-saves.sh` and verify an asset snapshot appears on Corsair.
+4. Run `scripts/backup-saves.sh` and verify an asset snapshot appears on the game disk.
 
 Pair a Bluetooth controller in iOS and use EmulatorJS's control settings to confirm the browser Gamepad API mapping. Keep touch controls enabled as the fallback.
 
 ## Automated start and backup
 
-The included [systemd unit](../systemd/emulator.service) waits for remote filesystems and Tailscale, then runs the configured mount preflight before starting Compose. This keeps it compatible with the `.env` mount path rather than hard-coding a particular NAS location. Install it as root after reviewing paths:
+The included [systemd unit](../systemd/emulator.service) waits for local filesystems and Tailscale, then runs the configured mount preflight before starting Compose. The preflight verifies the `.env` path, filesystem type and marker before Docker starts. Install it as root after reviewing paths:
 
 ```bash
 sudo install -m 0644 systemd/emulator.service /etc/systemd/system/emulator.service

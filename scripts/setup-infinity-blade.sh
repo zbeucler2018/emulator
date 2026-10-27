@@ -70,7 +70,7 @@ from infinity_blade import resolve_game
 
 root = Path("/romm/library/roms/Windows")
 if not root.is_dir():
-    print("  none: /mnt/sophia/games/Windows has not been created")
+    print("  none: the configured game library has no Windows directory")
 else:
     found = False
     for path in sorted(root.iterdir()):

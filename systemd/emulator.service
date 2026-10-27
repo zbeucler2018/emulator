@@ -1,7 +1,7 @@
 [Unit]
 Description=Private RomM retro gaming stack
-Wants=network-online.target tailscale-online.target remote-fs.target
-After=network-online.target tailscale-online.target remote-fs.target
+Wants=network-online.target tailscale-online.target local-fs.target
+After=network-online.target tailscale-online.target local-fs.target
 
 [Service]
 Type=oneshot

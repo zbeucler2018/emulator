@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create rolling, timestamped snapshots of RomM assets on the NAS.
+# Create rolling, timestamped snapshots of RomM assets on configured storage.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

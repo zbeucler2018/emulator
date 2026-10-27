@@ -1,0 +1,7 @@
+# Demon's Souls (BLUS30443) compatibility profile.
+# Keep this title-specific so other RPCS3 games retain the global settings.
+Video:
+  Shader Mode: Async Recompiler
+  Write Color Buffers: true
+  Vulkan:
+    Asynchronous Texture Streaming: true
