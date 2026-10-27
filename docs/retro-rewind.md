@@ -176,15 +176,14 @@ Retro Rewind update unless it has been tested with that version.
 
 ## Two local players
 
-Selkies 2.0 polls four browser Gamepad API indices independently and the live
-server exposes four independent virtual joystick sockets. A runtime SDL probe
-confirmed indices 0-3 all appear to Dolphin as separate `Xbox 360 Controller`
-devices. Stock secured Selkies 2.0 nevertheless rewrites every local pad from
-the hosting browser to collaboration slot 0. The WebStation image carries an
-exact-version compatibility patch that preserves each Gamepad API index for
-the host while leaving remote viewers pinned to their assigned collaboration
-slot. The Retro Rewind launch layer enables exactly two GameCube controller
-ports and binds them explicitly:
+Selkies 2.1 supports assigning an ordered list of virtual gamepad slots to one
+browser token. The custom WebStation image carries upstream RomM Broker PR
+`#134` at pinned commit `cc7a864`, which exposes that native multi-slot model.
+The host receives slots `[1, 2]` by default: its first browser Gamepad API
+device drives virtual pad 1 and its second drives virtual pad 2. Ordinary Play
+is sufficient; do not enable RomM Multiplayer for two controllers connected
+to the same laptop. The Retro Rewind launch layer enables exactly two GameCube
+controller ports and binds them explicitly:
 
 - Player 1: `SDL/0/Xbox 360 Controller`
 - Player 2: `SDL/1/Xbox 360 Controller`
@@ -212,15 +211,12 @@ iPad path still requires hands-on validation. The automated/runtime checks
 prove browser slots remain distinct through Selkies and into SDL; they do not
 prove a particular pair of client controllers or browser firmware.
 
-RomM's **Multiplayer** switch is for a controller connected to a second
+RomM's **Multiplayer** switch is only for a controller connected to a second
 browser/device. Launch with Multiplayer enabled, create a **Player** invite,
-and open it on the second device. The custom image assigns each Player invite
-the first free gamepad automatically (normally Gamepad 2); a **Spectator**
-invite stays unassigned and cannot send input. Upstream WebStation only made a
-Player eligible for control and required the host to drag a numbered gamepad
-icon onto the guest tile, which made a correctly connected iPhone appear
-input-dead. The host can still drag gamepad icons between tiles to override
-the automatic assignment.
+and open it on the second device. In the host room, drag Gamepad 2 from the
+host tile to the guest tile. The upstream multi-slot room supports assigning
+one or several numbered pads to each participant; a **Spectator** remains
+input-disabled.
 
 Read-only SDL visibility probe:
 
@@ -304,17 +300,17 @@ The new item does not appear
   quick scan in RomM. The file must remain under the existing Wii library.
 
 Both pads control player 1
-: Confirm the running container uses the custom image, close the stream,
-  connect both pads before reopening it, and run the SDL
-  probe. The launch log must contain `GCPad1 ... SDL/0` and
-  `GCPad2 ... SDL/1`; do not configure physical Wii Remote passthrough.
+: Confirm the running container reports Selkies 2.1 and that its controller
+  token has slots `[1, 2]`. Close the stream, connect both pads before
+  reopening it, and run the SDL probe. The launch log must contain
+  `GCPad1 ... SDL/0` and `GCPad2 ... SDL/1`; do not configure physical Wii
+  Remote passthrough.
 
 A Player invite connects but its controller does nothing
-: In the host's Selkies people panel, confirm Gamepad 2 is shown on the guest
-  tile. With an older running image, drag the **Gamepad 2** icon onto that tile.
-  Recreate WebStation with the custom image after the current session ends to
-  enable automatic assignment on future Player invites. Spectator invites are
-  intentionally never assigned a gamepad.
+: In the host room, drag the **Gamepad 2** icon onto the guest tile. A Player
+  invite creates an eligible participant but does not automatically take a
+  slot from the host. Spectator invites are intentionally never assigned a
+  gamepad.
 
 Progress is missing after Save & Quit
 : Check that `current/riivolution/save` is a symlink to the configured

@@ -1,23 +1,48 @@
-ARG WEBSTATION_IMAGE=lscr.io/linuxserver/webstation@sha256:696dd0fea59f808b2ff160957118cb7247ab95823d2448f7fe46b3fe726d1a03
+ARG WEBSTATION_IMAGE=lscr.io/linuxserver/webstation@sha256:eec9b7bb0571da05534daa08edde5ccf0e212a635794f29ea5f39f1c70a7ffb5
 FROM ${WEBSTATION_IMAGE}
 
-# A secured Selkies 2.0 host connection rewrites every browser Gamepad API
-# index to its one collaboration slot. Preserve separate local pads for couch
-# co-op while keeping remote viewers restricted to their assigned slot. Exact
-# replacements make the build fail if an upstream update changes this code.
-COPY scripts/patch-selkies-local-gamepads.py /tmp/patch-selkies-local-gamepads.py
-RUN /lsiopy/bin/python3 /tmp/patch-selkies-local-gamepads.py \
-        /lsiopy/lib/python3.14/site-packages/selkies \
-        /usr/share/selkies \
-    && rm /tmp/patch-selkies-local-gamepads.py
+# Selkies 2.1 natively maps a token's ordered slot list to that page's local
+# Gamepad API devices. WebStation Broker PR #134 exposes that support in its
+# room and token model; pin the exact upstream commit rebased onto v0.15.3.
+# The one local policy below gives the host slots 1 and 2 by default, so couch
+# co-op works through ordinary Play without first opening the multiplayer UI.
+ARG ROMM_BROKER_MULTISLOT_COMMIT=cc7a86415d8bc7b2008d9dc2bb449c08df4f3ad4
+ARG ROMM_BROKER_MULTISLOT_SHA256=2dc366a433db9efd6704bcab9aec8cd323e359307164a350cb0cdacf79d32792
+RUN set -eux; \
+    test "$(/lsiopy/bin/python3 -c 'import importlib.metadata as m; print(m.version("webstation-broker"))')" = "0.15.3"; \
+    source_dir=/tmp/romm-broker-multislot; \
+    archive=/tmp/romm-broker-multislot.tar.gz; \
+    curl -fsSL -o "$archive" \
+        "https://github.com/romm-streaming/romm-broker/archive/${ROMM_BROKER_MULTISLOT_COMMIT}.tar.gz"; \
+    echo "${ROMM_BROKER_MULTISLOT_SHA256}  $archive" | sha256sum -c -; \
+    mkdir -p "$source_dir"; \
+    tar -xzf "$archive" --strip-components=1 -C "$source_dir"; \
+    /lsiopy/bin/python3 - "$source_dir/webstation_broker/session.py" <<'PY'
+from pathlib import Path
+import sys
 
-# A WebStation "Player" invite is a participant seat, but upstream leaves the
-# seat without a gamepad until the host performs an undiscoverable drag/drop.
-# Give participants the first free pad automatically; spectators stay read-only.
-COPY scripts/patch-webstation-player-seats.py /tmp/patch-webstation-player-seats.py
-RUN /lsiopy/bin/python3 /tmp/patch-webstation-player-seats.py \
-        /lsiopy/lib/python3.14/site-packages/webstation_broker/session.py \
-    && rm /tmp/patch-webstation-player-seats.py
+path = Path(sys.argv[1])
+text = path.read_text()
+old = '        "controller_slot": 1,\n'
+new = '        "controller_slot": [1, 2],\n'
+if text.count(old) != 1:
+    raise SystemExit(f"expected one upstream controller-slot default in {path}")
+path.write_text(text.replace(old, new))
+PY
+RUN set -eux; \
+    source_dir=/tmp/romm-broker-multislot; \
+    cd "$source_dir/frontend"; \
+    npm ci --no-audit --no-fund; \
+    npm test; \
+    npm run build; \
+    install -m 0644 "$source_dir/webstation_broker/session.py" \
+        /lsiopy/lib/python3.14/site-packages/webstation_broker/session.py; \
+    install -m 0644 "$source_dir/webstation_broker/room.py" \
+        /lsiopy/lib/python3.14/site-packages/webstation_broker/room.py; \
+    rm -rf /usr/share/webstation-broker/www; \
+    install -d /usr/share/webstation-broker/www; \
+    cp -a "$source_dir/frontend/dist/." /usr/share/webstation-broker/www/; \
+    rm -rf "$source_dir" /tmp/romm-broker-multislot.tar.gz
 
 # Infinity Blade's community PC ports are Windows applications. Keep the
 # upstream WebStation image intact and add only Wine plus the small tools used
