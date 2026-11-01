@@ -61,6 +61,8 @@ services:
       SCREENSCRAPER_PASSWORD: ${SCREENSCRAPER_PASSWORD:-}
       RETROACHIEVEMENTS_API_KEY: ${RETROACHIEVEMENTS_API_KEY:-}
       STEAMGRIDDB_API_KEY: ${STEAMGRIDDB_API_KEY:-}
+      # The keyless Steam storefront provider recognizes `(steam-APPID)` tags.
+      STEAM_API_ENABLED: ${STEAM_API_ENABLED:-true}
       STREAMING_BROKER_SECRET: ${STREAMING_BROKER_SECRET:?set STREAMING_BROKER_SECRET in .env}
       STREAMING_LAUNCH_TIMEOUT: ${STREAMING_LAUNCH_TIMEOUT:-600}
       STREAMING_SAVE_TIMEOUT: ${STREAMING_SAVE_TIMEOUT:-120}
@@ -228,6 +230,108 @@ services:
         soft: -1
         hard: -1
     shm_size: "1gb"
+
+  # Steam is intentionally independent from WebStation.  It shares the GPU,
+  # but has its own Selkies session, application home, Proton prefixes and
+  # lifecycle.  The profile keeps ordinary `docker compose up` unchanged.
+  steam:
+    profiles: ["steam"]
+    # LinuxServer Steam amd64 build inspected and tested for this deployment.
+    # The digest is immutable; update it only through the documented smoke run.
+    image: ${STEAM_IMAGE:-lscr.io/linuxserver/steam@sha256:f3d8f5e8c80c5ce809c839ada788fd69132b2314fcad2e7804ca725671aa5c65}
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      mount-guard:
+        condition: service_completed_successfully
+    # Steam uses bubblewrap for its browser helper and Proton games.  These
+    # two upstream-recommended relaxations avoid the slower ptrace/proot
+    # fallback without making the container privileged.
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    environment:
+      PUID: ${STEAM_PUID:-1000}
+      PGID: ${STEAM_PGID:-1000}
+      TZ: ${TZ:-America/New_York}
+      TITLE: Steam on box
+      SUBFOLDER: /steam/
+      CUSTOM_USER: ${STEAM_WEB_USER:-steam}
+      FILE__PASSWORD: /run/secrets/steam_web_password
+      # Tailscale-friendly initial profile: one H.264/NVENC WebSocket stream
+      # at a fixed 1080p60 canvas. WebRTC remains an opt-in validation step.
+      AUTO_GPU: nvidia
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      # Prefer the discrete NVIDIA device inside Steam/Proton even though the
+      # container also exposes Mesa's software Vulkan device as a fallback.
+      __NV_PRIME_RENDER_OFFLOAD: "1"
+      __GLX_VENDOR_LIBRARY_NAME: nvidia
+      __VK_LAYER_NV_optimus: NVIDIA_only
+      SELKIES_MODE: websockets
+      SELKIES_ENABLE_DUAL_MODE: "false"
+      SELKIES_ENCODER: h264enc
+      SELKIES_FRAMERATE: 60-60
+      SELKIES_VIDEO_STREAMING_MODE: "true"
+      SELKIES_MANUAL_RESOLUTION: "true"
+      SELKIES_MANUAL_WIDTH: "1920"
+      SELKIES_MANUAL_HEIGHT: "1080"
+      SELKIES_ENABLE_RESIZE: "false"
+      SELKIES_RATE_CONTROL_MODE: cbr
+      SELKIES_CONGESTION_CONTROL: "true"
+      # Keep the internal `foot -e steam` wrapper executable, but remove it
+      # from the browser UI and disable higher-risk desktop capabilities.
+      DISABLE_SUDO: "true"
+      SELKIES_COMMAND_ENABLED: "false"
+      SELKIES_FILE_TRANSFERS: none
+      SELKIES_PRINTING_ENABLED: "false"
+      SELKIES_UI_SIDEBAR_SHOW_FILES: "false"
+      SELKIES_UI_SIDEBAR_SHOW_APPS: "false"
+      NO_WEBCAM: "true"
+      STEAM_BROKER_SECRET: ${STREAMING_BROKER_SECRET:?set STREAMING_BROKER_SECRET in .env}
+      STEAM_BROKER_PORT: "8000"
+      STEAM_CATALOG_ROOT: /romm/library/roms/Steam
+    volumes:
+      # Steam authentication, Cloud state, local saves, shader caches and
+      # Proton prefixes are all private to this service and persist here.
+      - ${STEAM_CONFIG_PATH:-/srv/emulator/steam}:/config
+      # Existing host installations are reused in place and can never be
+      # updated or corrupted by the container while host Steam is running.
+      - ${STEAM_HOST_LIBRARY_PATH:-/home/service/snap/steam/common/.local/share/Steam}:/mnt/host-steam:ro
+      # RomM sees these descriptors at the same absolute container path.
+      - ${STEAM_CATALOG_PATH:-/mnt/games/Sophia/games/Steam}:/romm/library/roms/Steam:ro
+      - ${STEAM_WEB_PASSWORD_FILE:-/srv/emulator/steam-web-password}:/run/secrets/steam_web_password:ro
+      - ./scripts/steam-library.py:/opt/romm/bin/steam-library.py:ro
+      - ./scripts/steam-broker.py:/opt/romm/bin/steam-broker.py:ro
+      - ./config/steam/custom-cont-init.d:/custom-cont-init.d:ro
+      - ./config/steam/custom-services.d:/custom-services.d:ro
+      - ./config/steam/menu.xml:/opt/romm/config/steam-menu.xml:ro
+    ports:
+      # Tailscale Serve is the only browser-facing entry point.  The broker's
+      # port is Compose-network-only and authenticated with the RomM secret.
+      - "127.0.0.1:${STEAM_HTTP_PORT:-3020}:3000"
+    expose:
+      - "8000"
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/nvidia-modeset:/dev/nvidia-modeset
+    group_add:
+      - "${VIDEO_GID:-44}"
+      - "${RENDER_GID:-992}"
+    gpus: all
+    shm_size: "2gb"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS -u "$${CUSTOM_USER}:$$(cat /run/secrets/steam_web_password)"
+          http://127.0.0.1:3000/steam/ >/dev/null &&
+          curl -fsS http://127.0.0.1:8000/health >/dev/null &&
+          pgrep -u abc -x steam >/dev/null
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
 
   # Tailnet-only Prometheus endpoint. The proxy keeps Selkies' privileged
   # master token inside Docker while allowing a trusted tailnet scraper to use

@@ -115,6 +115,9 @@ system:
     PS3: ps3
     PSX: psx
     PSP: psp
+    # Small AppID descriptors generated from the existing host Steam library.
+    # Linux is a catalogue boundary here; Proton games use the same launcher.
+    Steam: linux
     Wii: wii
     Windows: win
     Xbox: xbox
@@ -175,3 +178,12 @@ streaming:
           emulator: infinity-blade
           label: Wine
           clears_stale_saves: true
+    # Dedicated LinuxServer Steam/Selkies session. This deliberately uses the
+    # existing legacy broker shape because the official image has no native
+    # RomM room broker; scripts/steam-broker.py supplies only the launch and
+    # cleanup verbs and leaves streaming to Steam's independent Selkies UI.
+    - host: /steam
+      broker_host: http://steam:8000
+      platform: linux
+      emulator: steam
+      label: Steam

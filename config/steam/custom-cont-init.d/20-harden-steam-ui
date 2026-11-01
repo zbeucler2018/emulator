@@ -1,0 +1,9 @@
+#!/usr/bin/with-contenv bash
+set -euo pipefail
+
+# The upstream Steam wrapper needs `foot` internally.  Replace labwc's menu
+# instead of disabling the terminal binary, so no terminal launcher is exposed
+# through the streamed desktop while Steam itself can still start.
+install -o abc -g abc -m 0644 \
+  /opt/romm/config/steam-menu.xml \
+  /config/.config/labwc/menu.xml
