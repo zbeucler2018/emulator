@@ -1,0 +1,353 @@
+# Steam through RomM
+
+## Status and boundaries
+
+This branch adds an optional, independently operated LinuxServer Steam/Selkies
+service to the existing Compose project. It does not merge Steam into
+WebStation, grant Steam access to emulator saves, or make the existing host
+Steam library writable.
+
+Validation on `box` on 2026-11-01 reached the following boundary:
+
+- **Standalone Steam:** verified. The pinned container is healthy; its
+  authenticated Selkies desktop rendered a live Vulkan `vkcube` at 1920x1080
+  and 60 FPS over WebSockets. The cube used the NVIDIA RTX 4070 Ti, not
+  llvmpipe. NVENC advertised H.264, H.265, and AV1 support; this deployment
+  deliberately starts with H.264.
+- **Existing library reuse:** verified. Thirteen manifests are staged into the
+  isolated Steam home, including five games. Large installation directories
+  remain on the host and appear as read-only links. No game was copied or
+  downloaded.
+- **Direct AppID path:** verified up to authentication. A real broker request
+  constructed `steam -applaunch 892970`, Steam accepted it, status and
+  cancellation worked, and no game process appeared because this fresh
+  container is not signed in. This is not a claim that Valheim gameplay ran.
+- **RomM catalogue and launch wiring:** unit-tested and configured, but not yet
+  activated in the running RomM container. RomM was deliberately not restarted
+  while an existing gameplay session might be active. A safe-time restart,
+  library scan, and first Steam sign-in are the remaining manual steps.
+- **Physical clients/controllers:** not verified. The container created four
+  userspace virtual Xbox controller slots and Selkies enabled browser gamepads,
+  but the 8BitDo controller and iPhone/iPad Safari still require real-device
+  testing.
+
+## Architecture
+
+```text
+RomM / Steam platform and .steam descriptor
+    -> private legacy broker at steam:8000
+    -> validated AppID -> running Steam client (`steam -applaunch APPID`)
+    -> independent LinuxServer Steam desktop and Proton runtime
+    -> authenticated Selkies browser session at /steam/
+
+Host Steam library (read-only)
+    -> copied manifests + zero-copy installation links
+    -> isolated /srv/emulator/steam Steam home and Proton prefixes
+```
+
+The broker does not implement streaming. It only validates a generated
+descriptor, launches its AppID, tracks the one active request, and terminates
+processes whose environment identifies that same AppID. LinuxServer's Selkies
+service owns the browser session. The broker is available only on the Compose
+network and requires RomM's existing `X-Broker-Secret`.
+
+This is intentionally a compatibility adapter. RomM 5.4.1 has no merged
+server-side Steam-container backend. The open library-import work in
+[RomM PR 5362](https://github.com/rommapp/romm/pull/5362) and open client-side
+launcher in [PR 5368](https://github.com/rommapp/romm/pull/5368) are useful
+upstream directions, but neither provides the required server-side container
+launch flow in the deployed version. PR 5368 opens `steam://run/<appid>` on the
+browser device, which is unsuitable for iOS and would not target `box`.
+
+The small `.steam` files are owned catalogue descriptors, not fake game
+payloads. Their filename embeds `(steam-APPID)` for RomM's existing Steam
+metadata matcher. The adapter can be removed once RomM has a stable native
+Steam library and remote-launch extension.
+
+## Deployed storage
+
+| Purpose | Host path | Access from Steam |
+| --- | --- | --- |
+| Existing Steam installation and game payloads | `/home/service/snap/steam/common/.local/share/Steam` | read-only at `/mnt/host-steam` |
+| Container Steam home, login, Cloud data, caches, local saves, Proton prefixes | `/srv/emulator/steam` | read/write `/config` |
+| RomM AppID descriptors | `/mnt/games/Sophia/games/Steam` | read-only |
+| Browser Basic Auth password | `/srv/emulator/steam-web-password` | read-only file secret |
+
+The discovered game installations are:
+
+| AppID | Title |
+| ---: | --- |
+| 251570 | 7 Days to Die |
+| 201870 | Assassin's Creed Revelations |
+| 582160 | Assassin's Creed Origins |
+| 379430 | Kingdom Come: Deliverance |
+| 892970 | Valheim |
+
+The source mount is read-only even though the container receives the same
+UID/GID as the host user. Container Steam may update its copied manifests and
+write prefixes below `/config`, but it cannot update or corrupt the host-owned
+payload. This also permits the native host Steam process and the container to
+coexist without two clients writing the same library. Do not change the source
+mount to read/write while both clients can run.
+
+Proton payloads need a small exception to a direct directory symlink:
+LinuxServer's wrapper writes `user_settings.py` at their top level. The staging
+tool creates a writable, isolated top-level shim and read-only links for each
+large Proton payload entry. The setting is therefore container-local without
+duplicating Proton.
+
+Refresh the owned catalogue after installing or removing a host game:
+
+```bash
+python3 scripts/steam-library.py \
+  --source /home/service/snap/steam/common/.local/share/Steam \
+  catalog --destination /mnt/games/Sophia/games/Steam --prune
+docker compose --profile steam up -d --force-recreate steam
+```
+
+The `--prune` operation removes only descriptors marked as created by this
+repository. It never deletes a game, manifest, or unrelated file.
+
+## Image, GPU, and streaming choices
+
+The service uses the official `lscr.io/linuxserver/steam` image pinned to the
+validated amd64 manifest digest
+`sha256:f3d8f5e8c80c5ce809c839ada788fd69132b2314fcad2e7804ca725671aa5c65`.
+The pin is immutable; review upstream changes and rerun all checks before
+updating it.
+
+The Compose service follows the current
+[LinuxServer Steam documentation](https://docs.linuxserver.io/images/docker-steam/):
+
+- NVIDIA Container Toolkit access, all driver capabilities,
+  `/dev/nvidia-modeset`, and `/dev/dri` are exposed without changing the host
+  driver. The tested host/container driver is 580.178.04.
+- `seccomp:unconfined` and `apparmor:unconfined` are the upstream-recommended
+  bubblewrap allowances on Ubuntu. The container is **not** privileged and has
+  no Docker socket.
+- The stream uses a fixed 1920x1080 canvas at 60 FPS, H.264, CBR, congestion
+  control, and `SELKIES_VIDEO_STREAMING_MODE=true` for game-oriented encoding.
+- Shared memory is 2 GiB. Steam/Proton prefer the discrete NVIDIA Vulkan
+  device through the usual PRIME and Vulkan environment variables.
+
+The upstream [Selkies configuration guide](https://docs.linuxserver.io/selkies/user-guide/configuration/)
+defines both WebSocket and WebRTC modes. WebSockets are deployed here because
+they work through the existing path-based Tailscale HTTPS proxy, require no
+additional UDP exposure, and produced changing live frames in the browser
+during the actual Vulkan test. The existing WebStation deployment previously
+showed a real late/black-frame failure under WebRTC while WebSockets rendered
+the same application. WebRTC can reduce input latency in a suitable network,
+but requires a public/reachable candidate and UDP mux configuration. It was not
+enabled speculatively. Follow the upstream
+[reverse-proxy](https://docs.linuxserver.io/selkies/user-guide/reverse-proxy/)
+and [web-client](https://docs.linuxserver.io/selkies/user-guide/web-client/)
+guides if evaluating it later, and keep the WebSocket profile available as the
+known-good rollback.
+
+Steam's own startup diagnostic may mention llvmpipe when its legacy X11 probe
+runs in the Wayland session. That is not the acceleration verdict. The tested
+`vkcube --wsi wayland --gpu_number 0` selected `NVIDIA GeForce RTX 4070 Ti`,
+and `nvidia-smi` showed the process on that GPU.
+
+## Security and access
+
+The browser port is bound only to `127.0.0.1:3020`. Unauthenticated local
+requests return HTTP 401. The password is generated locally in a mode-0600
+file and is never present in Compose or Git. The broker is not published on a
+host port. Sudo, Selkies command execution, browser file transfer, printing,
+webcam access, and the file/application sidebars are disabled; the browser
+menu exposes only Steam. LinuxServer's internal `foot -e steam` wrapper must
+remain executable, so the more sweeping `HARDEN_DESKTOP` toggle cannot be used
+without breaking Steam startup.
+
+Publish the already-configured service to the tailnet after entering the host
+sudo password:
+
+```bash
+sudo tailscale serve --https=443 --set-path=/steam --bg \
+  http://127.0.0.1:3020/steam
+sudo tailscale serve status
+```
+
+The first command could not be applied by this unattended run because sudo
+requires an interactive password. It does not alter the existing `/`,
+`/streaming`, or `/metrics` handlers. Use Tailscale **Serve**, never Funnel.
+The expected browser URL is `https://box.tail71340c.ts.net/steam/` and it has a
+second Basic Auth boundary inside the tailnet.
+
+Retrieve the generated browser password only from a trusted shell on `box`:
+
+```bash
+cat /srv/emulator/steam-web-password
+```
+
+## First sign-in and RomM activation
+
+No Steam password or Steam Guard code has been requested, captured, or stored
+by this work. Complete the following when no RomM/WebStation game session is
+active:
+
+1. Apply the Tailscale Serve command above.
+2. Open `https://box.tail71340c.ts.net/steam/`, authenticate with user `steam`
+   and the local file password, then sign into the visible Steam client. Enter
+   Steam Guard only into Steam's own UI. Allow Steam to remember this machine
+   if that matches the account's security policy.
+3. In Steam Settings, force a Proton version for a small test game. LinuxServer
+   recommends Proton even for native Linux games because its userspace browser
+   gamepad interposer is in the Proton path. Do not enable a large download.
+4. At a safe time, activate the new RomM configuration without touching the
+   other containers:
+
+   ```bash
+   docker compose up -d --no-deps --force-recreate romm
+   ```
+
+5. In RomM, scan the `Steam` platform. Confirm the five descriptors appear and
+   that their title/artwork match the embedded AppIDs. Select **Steam** on a
+   game's Play menu. RomM should open `/steam/` while the private broker sends
+   the AppID to the existing client.
+6. Start with Valheim because its host payload is the smallest. Confirm video,
+   audio, keyboard/mouse, clean exit, and that a new prefix/save remains below
+   `/srv/emulator/steam`. Then test the 8BitDo controller from a desktop browser
+   before testing Safari.
+
+`STEAM_API_ENABLED=true` activates RomM's keyless Steam storefront metadata
+provider. A SteamGridDB key is optional and is not required for the embedded
+AppID match or official Steam capsule artwork.
+
+Steam Input itself is not supported by the current LinuxServer userspace
+controller design because no kernel `uinput`/HID device is exposed. The image
+creates up to four virtual Xbox-compatible slots and recommends forcing Proton
+so its gamepad interposer reaches the game. Do not add `privileged: true` or
+host `/dev/uinput` merely to imitate a different community image. Keyboard and
+mouse forwarding is enabled. Relative-mouse games may require Steam's gaming
+mode, as documented upstream.
+
+`umu-run` and ProtonUp-Qt are included upstream and are useful for launching
+non-Steam Windows titles from TOML or installing alternate Proton builds.
+They are not used for ordinary Steam AppIDs here: direct Steam launch preserves
+Steam authentication, Cloud behavior, per-game compatibility settings, and
+metadata with fewer custom layers.
+
+## Persistence, backup, and recovery
+
+`/srv/emulator/steam` persisted across an actual forced container recreation.
+It contains the container's Steam user data, local saves, Cloud state, shader
+caches, downloaded compatibility data, and isolated Proton prefixes. Include
+that entire directory in the host application-state backup alongside the
+existing `/srv/emulator` data. Back it up only while Steam is quiescent or with
+a filesystem-consistent snapshot. The existing RomM asset snapshot job is not
+modified because Steam data has a different lifecycle and must not be mixed
+with emulator saves.
+
+Steam Cloud remains a Steam feature: it can synchronize supported titles after
+login, but it is not a substitute for backing up `/srv/emulator/steam`. Games
+that do not support Cloud depend entirely on this local state.
+
+The host game payload is already outside the new writable state and is not
+copied into backups. The descriptor catalogue can be regenerated from host
+manifests. The browser password file should be included in a secure host
+configuration backup or deliberately regenerated and the container recreated.
+
+## Operations and diagnostics
+
+Start or update only Steam:
+
+```bash
+docker compose --profile steam up -d steam
+```
+
+Run the non-destructive live smoke test:
+
+```bash
+scripts/steam-smoke-test.sh
+python3 -m unittest tests.test_steam_integration -v
+```
+
+Inspect the service without exposing secrets:
+
+```bash
+docker compose --profile steam ps
+docker compose --profile steam logs --tail=200 steam
+docker exec emulator-steam-1 nvidia-smi
+docker exec -e XDG_RUNTIME_DIR=/config/.XDG -e WAYLAND_DISPLAY=wayland-1 \
+  emulator-steam-1 sh -lc \
+  'timeout -s TERM 5 vkcube --wsi wayland --gpu_number 0'
+```
+
+The smoke test checks the resolved Compose file, health, HTTP 401 boundary,
+authenticated UI, private broker health, NVIDIA visibility, staged links, and
+the read-only source mount. It never starts a game.
+
+LinuxServer prints a warning that the bind-mounted custom init/service files
+are not root-owned. They are repository files owned by the deployment user,
+mounted read-only, and that same user already controls Compose; the warning is
+expected for this source checkout. Do not make them writable inside the
+container or source them from a directory writable by an unrelated account.
+The `nvidia-drm_gbm.so` “same file” copy message is also emitted by the
+upstream image after it has fixed the GBM link and was harmless in the tested
+render path.
+
+Stop or disable Steam without affecting RomM or WebStation:
+
+```bash
+docker compose --profile steam stop steam
+docker compose --profile steam rm -f steam
+sudo tailscale serve --https=443 --set-path=/steam off
+```
+
+Verify with `tailscale serve status` that `/`, `/streaming`, and `/metrics`
+remain. Removing the container does not remove `/srv/emulator/steam`, the host
+library, or descriptors. Delete none of those paths as part of normal rollback.
+
+## Research notes and sources
+
+The implementation uses verified upstream behavior where available and treats
+forum configurations as context rather than requirements:
+
+- [LinuxServer Steam image](https://github.com/linuxserver/docker-steam) and
+  [image documentation](https://docs.linuxserver.io/images/docker-steam/):
+  current environment variables, browser authentication, GPU requirements,
+  userspace gamepads, Proton recommendation, gaming mode, `umu-run`, and the
+  bubblewrap security options.
+- [Selkies GPU guide](https://docs.linuxserver.io/selkies/user-guide/gpu/) and
+  [security guide](https://docs.linuxserver.io/selkies/user-guide/security/):
+  GPU selection, hardware encoding, and security controls used above.
+- LinuxServer issues
+  [#6](https://github.com/linuxserver/docker-steam/issues/6),
+  [#7](https://github.com/linuxserver/docker-steam/issues/7), and
+  [#9](https://github.com/linuxserver/docker-steam/issues/9) show that an HTTP
+  page or connected stream does not prove rendered gameplay. That is why this
+  deployment used a live Wayland Vulkan render and two browser frames rather
+  than accepting HTTP 200 as the video test. The reports are not copied as
+  configuration because the image and driver baseline have since changed.
+- LinuxServer [PR 5](https://github.com/linuxserver/docker-steam/pull/5)
+  introduced the bundled `umu-run`/ProtonUp-Qt workflow. It is useful for
+  decoupled executables, not necessary for direct Steam AppIDs.
+- [RomM PR 4498](https://github.com/rommapp/romm/pull/4498) and
+  [PR 4500](https://github.com/rommapp/romm/pull/4500) are the merged Steam
+  filename metadata and cover providers used by the descriptor naming scheme.
+  [PR 4436](https://github.com/rommapp/romm/pull/4436) is an unmerged companion
+  launcher approach and was not adopted.
+- [RomM WebStation](https://github.com/romm-streaming/romm-webstation) remains
+  the native-emulator/Wine backend; its broker was inspected for the legacy
+  launch, status, cancellation, and save route contract. Steam deliberately
+  remains a separate service.
+- The Unraid community's
+  [Steam Headless support thread](https://forums.unraid.net/topic/118390-support-josh5-steam-headless/)
+  commonly uses a writable `/games`, host networking, NVIDIA runtime flags,
+  kernel controller modules, and Steam Remote Play. Those are for a different
+  image and streaming/input architecture. This deployment keeps the library
+  read-only, uses Selkies, and does not inherit its privileged/controller
+  settings.
+- TrueNAS discussions about a
+  [privileged Steam Headless workaround](https://forums.truenas.com/t/25-10-privileged-steam-headless/64113)
+  and [alternatives](https://forums.truenas.com/t/docker-alternative-to-steam-headless/67495)
+  reinforce that host OS, driver, and image assumptions vary. `privileged:
+  true` was rejected because the actual LinuxServer image works here with only
+  the documented security options and explicit GPU devices.
+
+Reddit searches were blocked by the site's unauthenticated access controls
+during this run, so no Reddit-only claim was used. Community advice was
+accepted only when it matched current upstream documentation and actual tests
+on `box`.
