@@ -58,11 +58,14 @@ Host Steam library (read-only)
     -> isolated /srv/emulator/steam Steam home and Proton prefixes
 ```
 
-The broker does not implement streaming. It only validates a generated
-descriptor, launches its AppID, tracks the one active request, and terminates
-processes whose environment identifies that same AppID. LinuxServer's Selkies
-service owns the browser session. The broker is available only on the Compose
-network and requires RomM's existing `X-Broker-Secret`.
+The broker does not implement streaming. It validates a generated descriptor,
+launches its AppID, and tracks one request at a time. Steam's per-game `reaper`
+process (`SteamLaunch AppId=...`) is the primary running/exited signal, with
+the AppID process environment as a fallback. A request that never starts is
+released after 120 seconds, and a normally exited game is released on the next
+status or launch request. LinuxServer's Selkies service owns the browser
+session. The broker is available only on the Compose network and requires
+RomM's existing `X-Broker-Secret`.
 
 This is intentionally a compatibility adapter. RomM 5.4.1 has no merged
 server-side Steam-container backend. The open library-import work in
@@ -81,7 +84,7 @@ Steam library and remote-launch extension.
 
 | Purpose | Host path | Access from Steam |
 | --- | --- | --- |
-| Existing Steam installation and game payloads | `/home/service/snap/steam/common/.local/share/Steam` | read-only at `/mnt/host-steam` |
+| Existing Steam manifests and game payloads | `/home/service/snap/steam/common/.local/share/Steam/steamapps` | read-only at `/mnt/host-steam/steamapps` |
 | Container Steam home, login, Cloud data, caches, local saves, Proton prefixes | `/srv/emulator/steam` | read/write `/config` |
 | RomM AppID descriptors | `/mnt/games/Sophia/games/Steam` | read-only |
 | Browser Basic Auth password | `/srv/emulator/steam-web-password` | read-only file secret |
@@ -96,12 +99,24 @@ The discovered game installations are:
 | 379430 | Kingdom Come: Deliverance |
 | 892970 | Valheim |
 
-The source mount is read-only even though the container receives the same
-UID/GID as the host user. Container Steam may update its copied manifests and
-write prefixes below `/config`, but it cannot update or corrupt the host-owned
-payload. This also permits the native host Steam process and the container to
-coexist without two clients writing the same library. Do not change the source
-mount to read/write while both clients can run.
+Only the host `steamapps` tree is exposed; host account data, login state,
+`userdata`, and Steam configuration are not mounted. The source is read-only
+even though the container receives the same UID/GID as the host user.
+Container Steam may update its copied manifests and write prefixes below
+`/config`, but it cannot update or corrupt the host-owned payload. This also
+permits the native host Steam process and the container to coexist without two
+clients writing the same library. Do not change the source mount to read/write
+while both clients can run.
+
+Read-only reuse has deliberate limitations. Container Steam cannot install an
+update or DLC into an existing host game, repair files after integrity
+verification, or support a game/mod that writes inside its installation
+directory. It may report an update as required until host Steam updates the
+payload. Container-owned Proton prefixes and shader caches remain writable
+under `/srv/emulator/steam`; the host `steamapps/compatdata` and `shadercache`
+directories may be visible through the source mount but are never staged as
+the container's writable state. Update or repair games with host Steam, then
+restart only the Steam service to refresh copied manifests and links.
 
 Proton payloads need a small exception to a direct directory symlink:
 LinuxServer's wrapper writes `user_settings.py` at their top level. The staging
@@ -164,14 +179,19 @@ and `nvidia-smi` showed the process on that GPU.
 
 ## Security and access
 
-The browser port is bound only to `127.0.0.1:3020`. Unauthenticated local
-requests return HTTP 401. The password is generated locally in a mode-0600
-file and is never present in Compose or Git. The broker is not published on a
-host port. Sudo, Selkies command execution, browser file transfer, printing,
-webcam access, and the file/application sidebars are disabled; the browser
-menu exposes only Steam. LinuxServer's internal `foot -e steam` wrapper must
-remain executable, so the more sweeping `HARDEN_DESKTOP` toggle cannot be used
-without breaking Steam startup.
+Like WebStation, Steam is an independent service on the existing Compose
+network, with a distinct localhost-only HTTP port and path-based Tailscale
+Serve route. It does not use host networking or a separately published broker.
+The browser port is bound only to `127.0.0.1:3020`; unauthenticated local
+requests return HTTP 401. Basic Auth remains intentional because Tailscale
+limits who can reach the host but does not apply the RomM login session to this
+standalone desktop. The password is generated locally in a mode-0600 file and
+is never present in Compose or Git. The broker is Compose-network-only. Sudo,
+Selkies command execution, browser file transfer, printing, webcam access, and
+the file/application sidebars are disabled; the browser menu exposes only
+Steam. LinuxServer's internal `foot -e steam` wrapper must remain executable,
+so the more sweeping `HARDEN_DESKTOP` toggle cannot be used without breaking
+Steam startup.
 
 Publish the already-configured service to the tailnet after entering the host
 sudo password:
@@ -270,27 +290,32 @@ Start or update only Steam:
 docker compose --profile steam up -d steam
 ```
 
-Run the non-destructive live smoke test:
+Run the non-destructive validation directly:
 
 ```bash
-scripts/steam-smoke-test.sh
+docker compose --profile steam config --quiet
 python3 -m unittest tests.test_steam_integration -v
-```
-
-Inspect the service without exposing secrets:
-
-```bash
 docker compose --profile steam ps
+curl -o /dev/null -sS -w '%{http_code}\n' http://127.0.0.1:3020/steam/
 docker compose --profile steam logs --tail=200 steam
 docker exec emulator-steam-1 nvidia-smi
+docker exec emulator-steam-1 findmnt -no OPTIONS /mnt/host-steam/steamapps
 docker exec -e XDG_RUNTIME_DIR=/config/.XDG -e WAYLAND_DISPLAY=wayland-1 \
   emulator-steam-1 sh -lc \
   'timeout -s TERM 5 vkcube --wsi wayland --gpu_number 0'
 ```
 
-The smoke test checks the resolved Compose file, health, HTTP 401 boundary,
-authenticated UI, private broker health, NVIDIA visibility, staged links, and
-the read-only source mount. It never starts a game.
+The expected unauthenticated HTTP result is `401`, and `findmnt` must include
+`ro`. These checks do not start a game.
+
+RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
+matching children and gives them up to 30 seconds to exit. This is a best-effort
+graceful request; Steam has no documented per-AppID command equivalent to the
+client's Stop button. If an exact matching process remains, the broker uses
+`SIGKILL` as a last resort and reports the forced count. It never signals the
+shared Steam client. A forced exit can interrupt a game's own save write; Steam
+Cloud can synchronize only after the client observes termination, so prefer
+exiting through the game UI whenever possible.
 
 LinuxServer prints a warning that the bind-mounted custom init/service files
 are not root-owned. They are repository files owned by the deployment user,
@@ -346,6 +371,10 @@ forum configurations as context rather than requirements:
   the native-emulator/Wine backend; its broker was inspected for the legacy
   launch, status, cancellation, and save route contract. Steam deliberately
   remains a separate service.
+- [Lutris' Steam runner](https://github.com/lutris/lutris/blob/master/lutris/runners/steam.py)
+  documents the per-game `reaper SteamLaunch AppId=...` process used here for
+  native and Proton lifecycle detection, its 120-second launch grace, and the
+  rule that cancellation must never signal the shared Steam client.
 - The Unraid community's
   [Steam Headless support thread](https://forums.unraid.net/topic/118390-support-josh5-steam-headless/)
   commonly uses a writable `/games`, host networking, NVIDIA runtime flags,

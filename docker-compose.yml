@@ -237,8 +237,8 @@ services:
   steam:
     profiles: ["steam"]
     # LinuxServer Steam amd64 build inspected and tested for this deployment.
-    # The digest is immutable; update it only through the documented smoke run.
-    image: ${STEAM_IMAGE:-lscr.io/linuxserver/steam@sha256:f3d8f5e8c80c5ce809c839ada788fd69132b2314fcad2e7804ca725671aa5c65}
+    # The digest is immutable; update it only after the documented validation.
+    image: lscr.io/linuxserver/steam@sha256:f3d8f5e8c80c5ce809c839ada788fd69132b2314fcad2e7804ca725671aa5c65
     platform: linux/amd64
     restart: unless-stopped
     depends_on:
@@ -251,12 +251,12 @@ services:
       - seccomp:unconfined
       - apparmor:unconfined
     environment:
-      PUID: ${STEAM_PUID:-1000}
-      PGID: ${STEAM_PGID:-1000}
-      TZ: ${TZ:-America/New_York}
+      PUID: "1000"
+      PGID: "1000"
+      TZ: America/New_York
       TITLE: Steam on box
       SUBFOLDER: /steam/
-      CUSTOM_USER: ${STEAM_WEB_USER:-steam}
+      CUSTOM_USER: steam
       FILE__PASSWORD: /run/secrets/steam_web_password
       # Tailscale-friendly initial profile: one H.264/NVENC WebSocket stream
       # at a fixed 1080p60 canvas. WebRTC remains an opt-in validation step.
@@ -294,13 +294,13 @@ services:
     volumes:
       # Steam authentication, Cloud state, local saves, shader caches and
       # Proton prefixes are all private to this service and persist here.
-      - ${STEAM_CONFIG_PATH:-/srv/emulator/steam}:/config
+      - /srv/emulator/steam:/config
       # Existing host installations are reused in place and can never be
       # updated or corrupted by the container while host Steam is running.
-      - ${STEAM_HOST_LIBRARY_PATH:-/home/service/snap/steam/common/.local/share/Steam}:/mnt/host-steam:ro
+      - /home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:ro
       # RomM sees these descriptors at the same absolute container path.
-      - ${STEAM_CATALOG_PATH:-/mnt/games/Sophia/games/Steam}:/romm/library/roms/Steam:ro
-      - ${STEAM_WEB_PASSWORD_FILE:-/srv/emulator/steam-web-password}:/run/secrets/steam_web_password:ro
+      - /mnt/games/Sophia/games/Steam:/romm/library/roms/Steam:ro
+      - /srv/emulator/steam-web-password:/run/secrets/steam_web_password:ro
       - ./scripts/steam-library.py:/opt/romm/bin/steam-library.py:ro
       - ./scripts/steam-broker.py:/opt/romm/bin/steam-broker.py:ro
       - ./config/steam/custom-cont-init.d:/custom-cont-init.d:ro
@@ -309,15 +309,15 @@ services:
     ports:
       # Tailscale Serve is the only browser-facing entry point.  The broker's
       # port is Compose-network-only and authenticated with the RomM secret.
-      - "127.0.0.1:${STEAM_HTTP_PORT:-3020}:3000"
+      - "127.0.0.1:3020:3000"
     expose:
       - "8000"
     devices:
       - /dev/dri:/dev/dri
       - /dev/nvidia-modeset:/dev/nvidia-modeset
     group_add:
-      - "${VIDEO_GID:-44}"
-      - "${RENDER_GID:-992}"
+      - "44"
+      - "992"
     gpus: all
     shm_size: "2gb"
     healthcheck:

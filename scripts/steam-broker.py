@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 
 MAX_BODY_BYTES = 64 * 1024
 MAX_DESCRIPTOR_BYTES = 64 * 1024
+LAUNCH_GRACE_SECONDS = 120.0
 
 
 class BrokerError(RuntimeError):
@@ -53,19 +54,9 @@ class SteamBroker:
         self.state_path = state_path
         self._lock = threading.Lock()
         self._session: dict[str, Any] | None = self._read_state()
-        # A container restart necessarily kills the launched game, while the
-        # state file persists under /config.  Never let that stale marker block
-        # the next session.
-        if self._session is not None:
-            try:
-                appid = int(self._session["appid"])
-            except (KeyError, TypeError, ValueError):
-                self._session = None
-            else:
-                if not self._process_appids().get(appid):
-                    self._session = None
-            if self._session is None:
-                self._write_state()
+        # The state file survives a broker/container restart. Reconcile it
+        # against Steam's per-game process before accepting new work.
+        self._reconcile_session()
 
     def authorized(self, presented: str | None) -> bool:
         return bool(presented) and hmac.compare_digest(self.secret, presented or "")
@@ -113,31 +104,91 @@ class SteamBroker:
         return value
 
     @staticmethod
-    def _process_appids() -> dict[int, list[int]]:
-        found: dict[int, list[int]] = {}
-        for entry in Path("/proc").iterdir():
+    def _app_processes(appid: int, proc_root: Path = Path("/proc")) -> list[int]:
+        """Find only processes belonging to one Steam AppID.
+
+        Steam's per-game reaper is the primary lifecycle signal. Its command
+        line contains ``SteamLaunch AppId=<appid>`` from launch until exit for
+        native and Proton games. Environment markers remain a fallback for a
+        game child, but the shared Steam client is never a stop target.
+        """
+        found: set[int] = set()
+        signature = f"SteamLaunch AppId={appid}"
+        for entry in proc_root.iterdir():
             if not entry.name.isdigit():
                 continue
+            try:
+                raw_cmdline = (entry / "cmdline").read_bytes()
+                arguments = raw_cmdline.rstrip(b"\0").split(b"\0")
+                cmdline = (
+                    raw_cmdline.replace(b"\0", b" ")
+                    .decode("utf-8", "replace")
+                    .rstrip()
+                )
+            except (OSError, PermissionError):
+                arguments = []
+                cmdline = ""
+
+            index = cmdline.find(signature)
+            after = (
+                cmdline[index + len(signature) : index + len(signature) + 1]
+                if index >= 0
+                else ""
+            )
+            if "reaper" in cmdline and index >= 0 and after in ("", " "):
+                found.add(int(entry.name))
+                continue
+
             try:
                 fields = (entry / "environ").read_bytes().split(b"\0")
             except (OSError, PermissionError):
                 continue
-            appid = None
+            process_appid = None
             for field in fields:
                 if field.startswith((b"SteamAppId=", b"SteamGameId=")):
                     try:
-                        appid = int(field.split(b"=", 1)[1])
+                        process_appid = int(field.split(b"=", 1)[1])
                     except ValueError:
                         pass
-                    if appid:
+                    if process_appid:
                         break
-            if appid:
-                found.setdefault(appid, []).append(int(entry.name))
-        return found
+            executable = Path(os.fsdecode(arguments[0])).name if arguments else ""
+            if process_appid == appid and executable not in {"steam", "steamwebhelper"}:
+                found.add(int(entry.name))
+        return sorted(found)
+
+    def _clear_session(self) -> None:
+        self._session = None
+        self._write_state()
+
+    def _reconcile_session(self, *, now: float | None = None) -> tuple[str, list[int]]:
+        """Refresh persisted state without a poller or background daemon."""
+        if self._session is None:
+            return "idle", []
+        try:
+            appid = int(self._session["appid"])
+            accepted_at = float(self._session["accepted_at"])
+        except (KeyError, TypeError, ValueError):
+            self._clear_session()
+            return "idle", []
+
+        pids = self._app_processes(appid)
+        if pids:
+            if not self._session.get("seen_running"):
+                self._session["seen_running"] = True
+                self._write_state()
+            return "running", pids
+
+        current_time = time.time() if now is None else now
+        if self._session.get("seen_running") or current_time - accepted_at >= LAUNCH_GRACE_SECONDS:
+            self._clear_session()
+            return "idle", []
+        return "launching", []
 
     def launch(self, raw_path: str, rom_name: str | None = None) -> dict[str, Any]:
         value = self.descriptor(raw_path)
         with self._lock:
+            self._reconcile_session()
             if self._session is not None:
                 raise BrokerError(HTTPStatus.CONFLICT, "a Steam session is already active")
             appid = value["appid"]
@@ -165,29 +216,32 @@ class SteamBroker:
                 "name": value.get("name") or rom_name,
                 "descriptor": raw_path,
                 "accepted_at": time.time(),
+                "seen_running": False,
             }
             self._write_state()
             return {"status": "launching", "appid": appid}
 
     def status(self) -> dict[str, Any]:
         with self._lock:
+            state, pids = self._reconcile_session()
             if self._session is None:
                 return {"status": "idle"}
             appid = int(self._session["appid"])
-            pids = self._process_appids().get(appid, [])
             return {
-                "status": "running" if pids else "launching",
+                "status": state,
                 "appid": appid,
                 "pids": pids,
                 "accepted_at": self._session.get("accepted_at"),
             }
 
-    def stop(self, *, timeout: float = 10.0) -> dict[str, Any]:
+    def stop(self, *, timeout: float = 30.0) -> dict[str, Any]:
         with self._lock:
+            _, pids = self._reconcile_session()
             if self._session is None:
                 return {"status": "idle", "stopped": 0}
             appid = int(self._session["appid"])
-            pids = self._process_appids().get(appid, [])
+            # SIGTERM gives the per-game Steam reaper and game children a
+            # chance to unwind while leaving the shared Steam client alive.
             for pid in pids:
                 try:
                     os.kill(pid, signal.SIGTERM)
@@ -197,16 +251,24 @@ class SteamBroker:
             remaining = pids
             while remaining and time.monotonic() < deadline:
                 time.sleep(0.2)
-                live = self._process_appids().get(appid, [])
+                live = self._app_processes(appid)
                 remaining = [pid for pid in remaining if pid in live]
+            # A hung game gets one last-resort force stop. Re-scan before each
+            # signal so a recycled PID can never terminate an unrelated task.
+            live = set(self._app_processes(appid)) if remaining else set()
+            remaining = [pid for pid in remaining if pid in live]
             for pid in remaining:
                 try:
                     os.kill(pid, signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-            self._session = None
-            self._write_state()
-            return {"status": "stopped", "stopped": len(pids), "forced": len(remaining)}
+            self._clear_session()
+            return {
+                "status": "stopped",
+                "stopped": len(pids),
+                "graceful": len(pids) - len(remaining),
+                "forced": len(remaining),
+            }
 
 
 class BrokerHandler(BaseHTTPRequestHandler):

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -131,6 +133,27 @@ class BrokerTests(unittest.TestCase):
         )
         return catalog, descriptor
 
+    def test_process_detection_prefers_reaper_and_excludes_shared_steam(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            proc = Path(temporary)
+
+            def process(pid: int, arguments: list[str], environment: list[str]) -> None:
+                directory = proc / str(pid)
+                directory.mkdir()
+                (directory / "cmdline").write_bytes(
+                    b"\0".join(arg.encode() for arg in arguments) + b"\0"
+                )
+                (directory / "environ").write_bytes(
+                    b"\0".join(item.encode() for item in environment) + b"\0"
+                )
+
+            process(111, ["reaper", "SteamLaunch", "AppId=892970", "--", "game"], [])
+            process(222, ["wine64", "game.exe"], ["SteamAppId=892970"])
+            process(333, ["reaper", "SteamLaunch", "AppId=8929700", "--"], [])
+            process(444, ["/usr/bin/steam"], ["SteamGameId=892970"])
+
+            self.assertEqual(broker.SteamBroker._app_processes(892970, proc), [111, 222])
+
     def test_descriptor_validation_confines_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -162,7 +185,106 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaisesRegex(broker.BrokerError, "already active"):
                 instance.launch(str(descriptor))
 
+    def test_rejected_launch_does_not_create_a_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            completed = mock.Mock(returncode=1, stderr="not signed in")
+            with (
+                mock.patch.object(broker.subprocess, "run", return_value=completed),
+                self.assertRaisesRegex(broker.BrokerError, "not signed in"),
+            ):
+                instance.launch(str(descriptor))
+            self.assertEqual(instance.status(), {"status": "idle"})
+            self.assertFalse((root / "state.json").exists())
+
+    def test_session_clears_after_observed_game_exits_and_allows_relaunch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            completed = mock.Mock(returncode=0, stderr="")
+            with mock.patch.object(broker.subprocess, "run", return_value=completed):
+                instance.launch(str(descriptor))
+                with mock.patch.object(instance, "_app_processes", side_effect=[[111], []]):
+                    self.assertEqual(instance.status()["status"], "running")
+                    self.assertEqual(instance.status(), {"status": "idle"})
+                self.assertEqual(instance.launch(str(descriptor))["status"], "launching")
+
+    def test_session_clears_when_accepted_game_never_starts(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            completed = mock.Mock(returncode=0, stderr="")
+            with (
+                mock.patch.object(broker.subprocess, "run", return_value=completed),
+                mock.patch.object(broker.time, "time", return_value=100.0),
+            ):
+                instance.launch(str(descriptor))
+            with (
+                mock.patch.object(instance, "_app_processes", return_value=[]),
+                mock.patch.object(broker.time, "time", return_value=221.0),
+            ):
+                self.assertEqual(instance.status(), {"status": "idle"})
+            self.assertFalse((root / "state.json").exists())
+
+    def test_concurrent_launches_create_only_one_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            gate = threading.Barrier(3)
+
+            def launch() -> str:
+                gate.wait()
+                try:
+                    return instance.launch(str(descriptor))["status"]
+                except broker.BrokerError as exc:
+                    return f"error:{exc.status}"
+
+            completed = mock.Mock(returncode=0, stderr="")
+            with mock.patch.object(broker.subprocess, "run", return_value=completed):
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    futures = [pool.submit(launch) for _ in range(2)]
+                    gate.wait()
+                    results = sorted(future.result() for future in futures)
+            self.assertEqual(results, ["error:409", "launching"])
+            self.assertEqual(completed.returncode, 0)
+
     def test_stop_terminates_only_the_active_appid(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            with mock.patch.object(
+                broker.subprocess,
+                "run",
+                return_value=mock.Mock(returncode=0, stderr=""),
+            ):
+                instance.launch(str(descriptor))
+            with (
+                mock.patch.object(instance, "_app_processes", side_effect=[[111], []]),
+                mock.patch.object(broker.os, "kill") as kill,
+            ):
+                result = instance.stop(timeout=0.1)
+            kill.assert_called_once_with(111, broker.signal.SIGTERM)
+            self.assertEqual(result["forced"], 0)
+            self.assertEqual(result["graceful"], 1)
+            self.assertEqual(instance.status()["status"], "idle")
+
+    def test_cancel_before_game_appears_clears_session_without_signals(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             catalog, descriptor = self._tree(root)
@@ -172,13 +294,45 @@ class BrokerTests(unittest.TestCase):
             with mock.patch.object(broker.subprocess, "run", return_value=mock.Mock(returncode=0, stderr="")):
                 instance.launch(str(descriptor))
             with (
-                mock.patch.object(instance, "_process_appids", side_effect=[{892970: [111]}, {}]),
+                mock.patch.object(instance, "_app_processes", return_value=[]),
                 mock.patch.object(broker.os, "kill") as kill,
             ):
-                result = instance.stop(timeout=0.1)
-            kill.assert_called_once_with(111, broker.signal.SIGTERM)
-            self.assertEqual(result["forced"], 0)
-            self.assertEqual(instance.status()["status"], "idle")
+                result = instance.stop()
+            kill.assert_not_called()
+            self.assertEqual(
+                result,
+                {"status": "stopped", "stopped": 0, "graceful": 0, "forced": 0},
+            )
+            self.assertFalse((root / "state.json").exists())
+
+    def test_stop_uses_sigkill_only_for_the_still_matching_app_process(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            with mock.patch.object(
+                broker.subprocess,
+                "run",
+                return_value=mock.Mock(returncode=0, stderr=""),
+            ):
+                instance.launch(str(descriptor))
+            with (
+                mock.patch.object(instance, "_app_processes", side_effect=[[111, 222], [222]]),
+                mock.patch.object(broker.os, "kill") as kill,
+            ):
+                result = instance.stop(timeout=0)
+            self.assertEqual(
+                kill.call_args_list,
+                [
+                    mock.call(111, broker.signal.SIGTERM),
+                    mock.call(222, broker.signal.SIGTERM),
+                    mock.call(222, broker.signal.SIGKILL),
+                ],
+            )
+            self.assertEqual(result["graceful"], 1)
+            self.assertEqual(result["forced"], 1)
 
     def test_broker_secret_is_constant_time_checked(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -197,21 +351,47 @@ class BrokerTests(unittest.TestCase):
             catalog, _ = self._tree(root)
             state = root / "state.json"
             state.write_text(json.dumps({"appid": 892970, "accepted_at": 1}))
-            with mock.patch.object(broker.SteamBroker, "_process_appids", return_value={}):
+            with mock.patch.object(broker.SteamBroker, "_app_processes", return_value=[]):
                 instance = broker.SteamBroker(
                     secret="secret", catalog_root=catalog, state_path=state
                 )
             self.assertEqual(instance.status(), {"status": "idle"})
             self.assertFalse(state.exists())
 
+    def test_restart_preserves_a_still_running_game_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, _ = self._tree(root)
+            state = root / "state.json"
+            state.write_text(json.dumps({"appid": 892970, "accepted_at": 1}))
+            with mock.patch.object(
+                broker.SteamBroker, "_app_processes", return_value=[111]
+            ):
+                instance = broker.SteamBroker(
+                    secret="secret", catalog_root=catalog, state_path=state
+                )
+                status = instance.status()
+            self.assertEqual(status["status"], "running")
+            self.assertEqual(status["pids"], [111])
+            self.assertTrue(json.loads(state.read_text())["seen_running"])
+
 
 class DeploymentWiringTests(unittest.TestCase):
     def test_compose_is_optional_pinned_and_read_only(self) -> None:
         compose = (ROOT / "docker-compose.yml").read_text()
         self.assertIn('profiles: ["steam"]', compose)
-        self.assertIn("lscr.io/linuxserver/steam@sha256:", compose)
-        self.assertIn("STEAM_HOST_LIBRARY_PATH", compose)
-        self.assertIn("/mnt/host-steam:ro", compose)
+        self.assertIn(
+            "image: lscr.io/linuxserver/steam@sha256:f3d8f5e8c80c5ce809c839ada788fd69132b2314fcad2e7804ca725671aa5c65",
+            compose,
+        )
+        self.assertNotIn("STEAM_IMAGE", compose)
+        self.assertIn(
+            "/home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:ro",
+            compose,
+        )
+        self.assertIn('"127.0.0.1:3020:3000"', compose)
+        self.assertIn('- "44"', compose)
+        self.assertIn('- "992"', compose)
         self.assertIn("STEAM_API_ENABLED: ${STEAM_API_ENABLED:-true}", compose)
         self.assertNotIn("/var/run/docker.sock", compose)
 
