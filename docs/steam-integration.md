@@ -31,12 +31,18 @@ Validation on `box` on 2026-11-01 reached the following boundary:
   but the 8BitDo controller and iPhone/iPad Safari still require real-device
   testing.
 
+![Steam client login rendered through the browser-facing Selkies stream at 60 FPS](steam-client-stream-proof.jpg)
+
+This frame is the actual containerized Steam client rendered inside the
+browser-facing Selkies canvas. The login fields were left empty and the QR
+login region was excluded from the persisted proof image. Its overlay reports
+60 FPS, active video throughput, capture-to-send timing, and stream latency.
+
 ![Live Steam Selkies stream rendering the NVIDIA Vulkan test at 60 FPS](steam-stream-proof.jpg)
 
-The proof frame above was captured from the browser-facing Selkies canvas. Its
-overlay reports 60 FPS, active video throughput, capture-to-send timing, and
-stream latency; it is not a screenshot taken directly from the container's
-desktop.
+The Vulkan proof frame was also captured from that browser canvas rather than
+directly from the container desktop. Together the frames demonstrate both the
+actual Steam client UI and NVIDIA-rendered content traversing Selkies.
 
 ## Architecture
 
