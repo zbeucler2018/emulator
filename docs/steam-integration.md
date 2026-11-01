@@ -31,6 +31,13 @@ Validation on `box` on 2026-11-01 reached the following boundary:
   but the 8BitDo controller and iPhone/iPad Safari still require real-device
   testing.
 
+![Live Steam Selkies stream rendering the NVIDIA Vulkan test at 60 FPS](steam-stream-proof.jpg)
+
+The proof frame above was captured from the browser-facing Selkies canvas. Its
+overlay reports 60 FPS, active video throughput, capture-to-send timing, and
+stream latency; it is not a screenshot taken directly from the container's
+desktop.
+
 ## Architecture
 
 ```text
