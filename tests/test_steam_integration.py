@@ -457,6 +457,7 @@ class DeploymentWiringTests(unittest.TestCase):
     def test_romm_routes_linux_to_the_private_broker(self) -> None:
         config = (ROOT / "config" / "config.yml").read_text()
         self.assertIn("Steam: linux", config)
+        self.assertIn("host: /steam/?romm=1", config)
         self.assertIn("broker_host: http://steam:8000", config)
         self.assertIn("emulator: steam", config)
 

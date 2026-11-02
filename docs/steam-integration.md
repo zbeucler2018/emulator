@@ -245,6 +245,12 @@ active:
    that name appears in the library. Select **Steam** on a game's Play menu.
    RomM should open `/steam/` while the private broker sends the AppID to the
    existing client.
+
+RomM's configured Steam host includes a harmless `?romm=1` query. RomM strips
+a trailing slash from path-only hosts, while Selkies derives its API and
+WebSocket prefix from `window.location.pathname`. The query preserves the
+`/steam/` pathname and prevents the client from retrying RomM's unrelated
+`/api/websockets` route.
 6. Start with Valheim because its host payload is the smallest. Confirm video,
    audio, keyboard/mouse, clean exit, and that a new prefix/save remains below
    `/srv/emulator/steam`. Then test the 8BitDo controller from a desktop browser
