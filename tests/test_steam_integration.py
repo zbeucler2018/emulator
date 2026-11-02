@@ -27,6 +27,7 @@ def load_module(name: str, path: Path):
 
 library = load_module("steam_library", ROOT / "scripts" / "steam-library.py")
 broker = load_module("steam_broker", ROOT / "scripts" / "steam-broker.py")
+steam_user_id = broker.SteamBroker._steam_user_id
 
 
 def manifest(root: Path, appid: int, name: str, installdir: str, size: int = 123) -> Path:
@@ -117,6 +118,13 @@ class LibraryDiscoveryTests(unittest.TestCase):
 
 
 class BrokerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        signed_in = mock.patch.object(
+            broker.SteamBroker, "_steam_user_id", return_value=76561198000000000
+        )
+        signed_in.start()
+        self.addCleanup(signed_in.stop)
+
     def _tree(self, root: Path) -> tuple[Path, Path]:
         catalog = root / "catalog"
         catalog.mkdir()
@@ -153,6 +161,22 @@ class BrokerTests(unittest.TestCase):
             process(444, ["/usr/bin/steam"], ["SteamGameId=892970"])
 
             self.assertEqual(broker.SteamBroker._app_processes(892970, proc), [111, 222])
+
+    def test_live_steam_login_detection_rejects_zero_account(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            proc = Path(temporary)
+
+            def helper(pid: int, steam_id: str) -> None:
+                directory = proc / str(pid)
+                directory.mkdir()
+                (directory / "cmdline").write_bytes(
+                    b"/steam/steamwebhelper\0--steamid=" + steam_id.encode() + b"\0"
+                )
+
+            helper(111, "0")
+            self.assertIsNone(steam_user_id(proc))
+            helper(222, "76561198000000000")
+            self.assertEqual(steam_user_id(proc), 76561198000000000)
 
     def test_descriptor_validation_confines_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -198,6 +222,24 @@ class BrokerTests(unittest.TestCase):
                 self.assertRaisesRegex(broker.BrokerError, "not signed in"),
             ):
                 instance.launch(str(descriptor))
+            self.assertEqual(instance.status(), {"status": "idle"})
+            self.assertFalse((root / "state.json").exists())
+
+    def test_unsigned_in_launch_is_rejected_without_reserving_session(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalog, descriptor = self._tree(root)
+            instance = broker.SteamBroker(
+                secret="secret", catalog_root=catalog, state_path=root / "state.json"
+            )
+            with (
+                mock.patch.object(instance, "_steam_user_id", return_value=None),
+                mock.patch.object(broker.subprocess, "run") as run,
+                self.assertRaisesRegex(broker.BrokerError, "not signed in") as raised,
+            ):
+                instance.launch(str(descriptor))
+            self.assertEqual(raised.exception.status, 412)
+            run.assert_not_called()
             self.assertEqual(instance.status(), {"status": "idle"})
             self.assertFalse((root / "state.json").exists())
 

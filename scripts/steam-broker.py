@@ -104,6 +104,38 @@ class SteamBroker:
         return value
 
     @staticmethod
+    def _steam_user_id(proc_root: Path = Path("/proc")) -> int | None:
+        """Return the active Steam account ID advertised by steamwebhelper.
+
+        Steam starts its login UI with ``--steamid=0`` and starts authenticated
+        helpers with the account's non-zero Steam ID.  This is a live-session
+        check, unlike loginusers.vdf, which can remain after a user signs out.
+        """
+        for entry in proc_root.iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                arguments = [
+                    os.fsdecode(argument)
+                    for argument in (entry / "cmdline").read_bytes().split(b"\0")
+                    if argument
+                ]
+            except (OSError, PermissionError):
+                continue
+            if not arguments or "steamwebhelper" not in Path(arguments[0]).name:
+                continue
+            for argument in arguments[1:]:
+                if not argument.startswith("--steamid="):
+                    continue
+                try:
+                    steam_id = int(argument.partition("=")[2])
+                except ValueError:
+                    continue
+                if steam_id > 0:
+                    return steam_id
+        return None
+
+    @staticmethod
     def _app_processes(appid: int, proc_root: Path = Path("/proc")) -> list[int]:
         """Find only processes belonging to one Steam AppID.
 
@@ -191,6 +223,11 @@ class SteamBroker:
             self._reconcile_session()
             if self._session is not None:
                 raise BrokerError(HTTPStatus.CONFLICT, "a Steam session is already active")
+            if self._steam_user_id() is None:
+                raise BrokerError(
+                    HTTPStatus.PRECONDITION_FAILED,
+                    "Steam is not signed in; open /steam/ and sign in before launching a game",
+                )
             appid = value["appid"]
             try:
                 completed = subprocess.run(

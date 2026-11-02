@@ -224,7 +224,9 @@ active:
 2. Open `https://box.tail71340c.ts.net/steam/`, authenticate with user `steam`
    and the local file password, then sign into the visible Steam client. Enter
    Steam Guard only into Steam's own UI. Allow Steam to remember this machine
-   if that matches the account's security policy.
+   if that matches the account's security policy. Do this before launching a
+   Steam title from RomM. The broker checks the live Steam client account ID
+   and rejects unsigned-in launches without reserving the Steam session.
 3. In Steam Settings, force a Proton version for a small test game. LinuxServer
    recommends Proton even for native Linux games because its userspace browser
    gamepad interposer is in the Proton path. Do not enable a large download.
