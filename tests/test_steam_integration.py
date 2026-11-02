@@ -463,7 +463,8 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertNotIn("/dev/uinput:/dev/uinput", compose)
         self.assertIn('SELKIES_UINPUT_GAMEPAD: "true"', compose)
         self.assertNotIn("privileged: true", compose)
-        self.assertIn("STEAM_API_ENABLED: ${STEAM_API_ENABLED:-true}", compose)
+        self.assertIn('STEAM_API_ENABLED: "true"', compose)
+        self.assertNotIn("STEAM_API_ENABLED=", (ROOT / ".env.example").read_text())
         self.assertNotIn("/var/run/docker.sock", compose)
 
     def test_romm_routes_linux_to_the_private_broker(self) -> None:

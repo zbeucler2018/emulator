@@ -72,6 +72,12 @@ Picture interface. RomM still launches the chosen AppID directly; Big Picture
 is simply the useful fullscreen surface shown while Steam and Proton prepare
 the game, instead of briefly exposing the desktop Store page.
 
+RomM's keyless Steam storefront provider is always enabled for this deployment.
+The generated `(steam-APPID)` filename tags make matching deterministic and
+populate descriptions, screenshots, genres, companies, release dates, ratings,
+controller support, and Steam capsule artwork. The `Steam` folder remains bound
+to RomM's `linux` metadata slug because the provider supports the PC OS slugs.
+
 This is intentionally a compatibility adapter. RomM 5.4.1 has no merged
 server-side Steam-container backend. The open library-import work in
 [RomM PR 5362](https://github.com/rommapp/romm/pull/5362) and open client-side
