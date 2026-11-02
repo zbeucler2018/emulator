@@ -483,6 +483,16 @@ class DeploymentWiringTests(unittest.TestCase):
         ).read_text()
         self.assertIn('<base href="/steam/">', init)
 
+    def test_steam_starts_in_controller_oriented_big_picture(self) -> None:
+        init = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "20-harden-steam-ui"
+        ).read_text()
+        self.assertIn("/usr/bin/wrapped-steam -gamepadui", init)
+
     def test_selkies_uinput_node_is_private_to_the_desktop_user(self) -> None:
         init = (
             ROOT

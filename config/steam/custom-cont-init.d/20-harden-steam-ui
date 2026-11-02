@@ -7,3 +7,10 @@ set -euo pipefail
 install -o abc -g abc -m 0644 \
   /opt/romm/config/steam-menu.xml \
   /config/.config/labwc/menu.xml
+
+# Keep the controller-oriented library visible while a broker-launched game is
+# completing its Steam/Proton startup instead of showing the desktop Store UI.
+printf '%s\n' '/usr/bin/wrapped-steam -gamepadui' \
+  > /config/.config/labwc/autostart
+chown abc:abc /config/.config/labwc/autostart
+chmod 0644 /config/.config/labwc/autostart

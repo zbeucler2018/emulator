@@ -67,6 +67,11 @@ status or launch request. LinuxServer's Selkies service owns the browser
 session. The broker is available only on the Compose network and requires
 RomM's existing `X-Broker-Secret`.
 
+Steam itself starts with `-gamepadui`, the current controller-oriented Big
+Picture interface. RomM still launches the chosen AppID directly; Big Picture
+is simply the useful fullscreen surface shown while Steam and Proton prepare
+the game, instead of briefly exposing the desktop Store page.
+
 This is intentionally a compatibility adapter. RomM 5.4.1 has no merged
 server-side Steam-container backend. The open library-import work in
 [RomM PR 5362](https://github.com/rommapp/romm/pull/5362) and open client-side
