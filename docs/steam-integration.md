@@ -236,9 +236,11 @@ active:
    ```
 
 5. In RomM, scan the `Steam` platform. Confirm the five descriptors appear and
-   that their title/artwork match the embedded AppIDs. Select **Steam** on a
-   game's Play menu. RomM should open `/steam/` while the private broker sends
-   the AppID to the existing client.
+   that their title/artwork match the embedded AppIDs. RomM identifies this as
+   its canonical Linux platform; set the platform's custom name to `Steam` so
+   that name appears in the library. Select **Steam** on a game's Play menu.
+   RomM should open `/steam/` while the private broker sends the AppID to the
+   existing client.
 6. Start with Valheim because its host payload is the smallest. Confirm video,
    audio, keyboard/mouse, clean exit, and that a new prefix/save remains below
    `/srv/emulator/steam`. Then test the 8BitDo controller from a desktop browser
