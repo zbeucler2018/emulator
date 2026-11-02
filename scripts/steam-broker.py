@@ -17,6 +17,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import threading
@@ -28,6 +29,10 @@ from urllib.parse import urlparse
 MAX_BODY_BYTES = 64 * 1024
 MAX_DESCRIPTOR_BYTES = 64 * 1024
 LAUNCH_GRACE_SECONDS = 120.0
+CONNECTION_LOG_BYTES = 256 * 1024
+CONNECTION_STATE = re.compile(
+    r"\] \[(?P<state>[^,\]]+)[^\]]*\] \[U:1:(?P<account_id>\d+)\]"
+)
 
 
 class BrokerError(RuntimeError):
@@ -104,7 +109,12 @@ class SteamBroker:
         return value
 
     @staticmethod
-    def _steam_user_id(proc_root: Path = Path("/proc")) -> int | None:
+    def _steam_user_id(
+        proc_root: Path = Path("/proc"),
+        connection_log: Path = Path(
+            "/config/.local/share/Steam/logs/connection_log.txt"
+        ),
+    ) -> int | None:
         """Return the active Steam account ID advertised by steamwebhelper.
 
         Steam starts its login UI with ``--steamid=0`` and starts authenticated
@@ -133,6 +143,30 @@ class SteamBroker:
                     continue
                 if steam_id > 0:
                     return steam_id
+
+        # The current Linux client can leave every helper at --steamid=0 after
+        # an interactive login. Its connection log is the authoritative live
+        # transition record: scan newest-first and accept only an authenticated
+        # Connected/Logged On state with a non-zero account ID. A later
+        # reconnect, disconnect, or logon attempt therefore makes this fail
+        # closed instead of trusting the persistent loginusers.vdf file.
+        try:
+            with connection_log.open("rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                size = handle.tell()
+                handle.seek(max(0, size - CONNECTION_LOG_BYTES))
+                lines = handle.read().decode("utf-8", "replace").splitlines()
+        except (OSError, PermissionError):
+            return None
+        for line in reversed(lines):
+            match = CONNECTION_STATE.search(line)
+            if match is None:
+                continue
+            state = match.group("state")
+            account_id = int(match.group("account_id"))
+            if state in {"Connected", "Logged On"} and account_id > 0:
+                return account_id
+            return None
         return None
 
     @staticmethod

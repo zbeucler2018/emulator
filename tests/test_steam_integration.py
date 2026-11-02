@@ -178,6 +178,23 @@ class BrokerTests(unittest.TestCase):
             helper(222, "76561198000000000")
             self.assertEqual(steam_user_id(proc), 76561198000000000)
 
+    def test_connection_log_detects_login_and_later_disconnect(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            proc = root / "proc"
+            proc.mkdir()
+            connection_log = root / "connection_log.txt"
+            connection_log.write_text(
+                "[time] [Connecting, 0, 0] [U:1:0] starting\n"
+                "[time] [Logged On, 4, 107] [U:1:1601339192] complete\n"
+            )
+            self.assertEqual(steam_user_id(proc, connection_log), 1601339192)
+            connection_log.write_text(
+                connection_log.read_text()
+                + "[time] [Disconnected, 0, 0] [U:1:1601339192] closed\n"
+            )
+            self.assertIsNone(steam_user_id(proc, connection_log))
+
     def test_descriptor_validation_confines_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
