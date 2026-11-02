@@ -38,6 +38,12 @@ TOOL_PREFIXES = (
     "steam linux runtime",
     "steamworks common redistributables",
 )
+# Steam selected this runtime for the installed Windows games. Unlike game
+# payloads, a Proton tool must be writable because Steam updates it in place.
+# Keep only the active runtime private; copying every installed Proton version
+# would waste several gigabytes without improving compatibility.
+WRITABLE_TOOL_APPIDS = {1493710}  # Proton Experimental
+WRITABLE_TOOL_MARKER = ".romm-writable-tool"
 
 
 class SteamLibraryError(RuntimeError):
@@ -230,6 +236,43 @@ def _stage_proton_view(destination: Path, source: Path) -> None:
         target.symlink_to(source_entry, target_is_directory=source_entry.is_dir())
 
 
+def _stage_writable_tool(destination: Path, source: Path) -> None:
+    """Copy one selected compatibility runtime into isolated writable state.
+
+    A prior release staged Proton as a shallow symlink view. Migrate only a
+    marker-owned view and retain it as a small reversible backup; never replace
+    an unmarked directory that may contain a real container installation.
+    """
+    writable_marker = destination / WRITABLE_TOOL_MARKER
+    readonly_marker = destination / ".romm-readonly-proton-view"
+    if writable_marker.is_file():
+        return
+    backup = destination.with_name(f".{destination.name}.romm-readonly-backup")
+    if destination.exists() and not readonly_marker.is_file():
+        raise SteamLibraryError(
+            f"refusing to replace non-managed compatibility tool: {destination}"
+        )
+    if backup.exists():
+        raise SteamLibraryError(f"compatibility tool migration backup exists: {backup}")
+
+    temporary = Path(
+        tempfile.mkdtemp(prefix=f".{destination.name}.romm-copy-", dir=destination.parent)
+    )
+    try:
+        shutil.copytree(source, temporary, dirs_exist_ok=True, symlinks=True)
+        (temporary / WRITABLE_TOOL_MARKER).write_text(
+            f"source={source}\n", encoding="utf-8"
+        )
+        if destination.exists():
+            destination.rename(backup)
+        temporary.rename(destination)
+    except Exception:
+        shutil.rmtree(temporary, ignore_errors=True)
+        if not destination.exists() and backup.exists():
+            backup.rename(destination)
+        raise
+
+
 def stage_library(apps: list[SteamApp], target_root: Path) -> list[Path]:
     """Stage manifests and links, never writing through to the source library."""
     steamapps = target_root / "steamapps"
@@ -238,9 +281,14 @@ def stage_library(apps: list[SteamApp], target_root: Path) -> list[Path]:
     staged: list[Path] = []
     for app in apps:
         manifest_target = steamapps / f"appmanifest_{app.appid}.acf"
-        shutil.copyfile(app.manifest, manifest_target)
+        # Preserve Steam's updated state for a locally writable tool across
+        # container recreation. Read-only host-backed apps remain restaged.
+        if app.appid not in WRITABLE_TOOL_APPIDS or not manifest_target.exists():
+            shutil.copyfile(app.manifest, manifest_target)
         install_target = common / app.installdir
-        if app.name.casefold().startswith("proton "):
+        if app.appid in WRITABLE_TOOL_APPIDS:
+            _stage_writable_tool(install_target, app.install_path)
+        elif app.name.casefold().startswith("proton "):
             _stage_proton_view(install_target, app.install_path)
         else:
             _replace_symlink(install_target, app.install_path)
@@ -281,7 +329,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"catalogued {len(paths)} Steam game(s)")
         elif args.command == "stage":
             paths = stage_library(apps, args.target.resolve())
-            print(f"staged {len(paths)} Steam app manifest(s) read-only")
+            print(f"staged {len(paths)} Steam app manifest(s) in isolated state")
         else:
             for app in apps:
                 kind = "tool" if app.is_tool else "game"

@@ -118,11 +118,13 @@ directories may be visible through the source mount but are never staged as
 the container's writable state. Update or repair games with host Steam, then
 restart only the Steam service to refresh copied manifests and links.
 
-Proton payloads need a small exception to a direct directory symlink:
-LinuxServer's wrapper writes `user_settings.py` at their top level. The staging
-tool creates a writable, isolated top-level shim and read-only links for each
-large Proton payload entry. The setting is therefore container-local without
-duplicating Proton.
+Proton payloads need an exception to direct read-only reuse. An actual Kingdom
+Come launch demonstrated that Steam updates Proton Experimental in place and a
+shallow symlink view fails its commit with `Disk write failure`. The staging
+tool therefore keeps a private writable copy of only the selected 1.5 GB
+Proton Experimental runtime under `/srv/emulator/steam`; other installed Proton
+versions remain read-only views. Game payloads remain host-backed and are not
+duplicated.
 
 Refresh the owned catalogue after installing or removing a host game:
 

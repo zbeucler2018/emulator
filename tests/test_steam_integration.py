@@ -87,7 +87,7 @@ class LibraryDiscoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(library.SteamLibraryError, "non-symlink"):
                 library.stage_library(library.discover(root), target)
 
-    def test_stage_gives_proton_a_writable_shim_without_copying_payload(self) -> None:
+    def test_stage_copies_only_selected_proton_runtime_to_writable_state(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "host"
             manifest(root, 1493710, "Proton Experimental", "Proton - Experimental")
@@ -98,9 +98,15 @@ class LibraryDiscoveryTests(unittest.TestCase):
             view = target / "steamapps" / "common" / "Proton - Experimental"
             self.assertTrue(view.is_dir())
             self.assertFalse(view.is_symlink())
-            self.assertTrue((view / "proton").is_symlink())
+            self.assertFalse((view / "proton").is_symlink())
+            self.assertTrue((view / library.WRITABLE_TOOL_MARKER).is_file())
             (view / "user_settings.py").write_text("container setting")
             self.assertFalse((root / "steamapps" / "common" / "Proton - Experimental" / "user_settings.py").exists())
+
+            # A later init preserves Steam's local tool updates.
+            (view / "proton").write_text("container update")
+            library.stage_library(library.discover(root), target)
+            self.assertEqual((view / "proton").read_text(), "container update")
 
     def test_prune_only_removes_owned_descriptors(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
