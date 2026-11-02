@@ -198,7 +198,7 @@ sudo password:
 
 ```bash
 sudo tailscale serve --https=443 --set-path=/steam --bg \
-  http://127.0.0.1:3020/steam
+  http://127.0.0.1:3020/steam/
 sudo tailscale serve status
 ```
 
@@ -206,7 +206,9 @@ The first command could not be applied by this unattended run because sudo
 requires an interactive password. It does not alter the existing `/`,
 `/streaming`, or `/metrics` handlers. Use Tailscale **Serve**, never Funnel.
 The expected browser URL is `https://box.tail71340c.ts.net/steam/` and it has a
-second Basic Auth boundary inside the tailnet.
+second Basic Auth boundary inside the tailnet. Keep the trailing slash on the
+proxy target: the container root is only the stock nginx page, while Selkies
+is served from `/steam/`.
 
 Retrieve the generated browser password only from a trusted shell on `box`:
 
