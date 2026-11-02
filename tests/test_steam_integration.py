@@ -443,6 +443,16 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn("broker_host: http://steam:8000", config)
         self.assertIn("emulator: steam", config)
 
+    def test_selkies_has_an_explicit_steam_asset_base(self) -> None:
+        init = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "30-selkies-base-path"
+        ).read_text()
+        self.assertIn('<base href="/steam/">', init)
+
 
 if __name__ == "__main__":
     unittest.main()
