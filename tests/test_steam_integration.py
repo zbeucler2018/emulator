@@ -442,7 +442,7 @@ class BrokerTests(unittest.TestCase):
 
 
 class DeploymentWiringTests(unittest.TestCase):
-    def test_compose_is_optional_pinned_and_read_only(self) -> None:
+    def test_compose_is_optional_pinned_and_library_is_writable(self) -> None:
         compose = (ROOT / "docker-compose.yml").read_text()
         self.assertIn('profiles: ["steam"]', compose)
         self.assertIn(
@@ -451,7 +451,7 @@ class DeploymentWiringTests(unittest.TestCase):
         )
         self.assertNotIn("STEAM_IMAGE", compose)
         self.assertIn(
-            "/home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:ro",
+            "/home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:rw",
             compose,
         )
         self.assertIn('"127.0.0.1:3020:3000"', compose)

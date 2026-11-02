@@ -295,9 +295,10 @@ services:
       # Steam authentication, Cloud state, local saves, shader caches and
       # Proton prefixes are all private to this service and persist here.
       - /srv/emulator/steam:/config
-      # Existing host installations are reused in place and can never be
-      # updated or corrupted by the container while host Steam is running.
-      - /home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:ro
+      # Existing installations are reused and writable so Steam can update
+      # games and pressure-vessel runtime refs. Host Steam must stay closed
+      # while this container is running; two writers would corrupt the library.
+      - /home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:rw
       # RomM sees these descriptors at the same absolute container path.
       - /mnt/games/Sophia/games/Steam:/romm/library/roms/Steam:ro
       - /srv/emulator/steam-web-password:/run/secrets/steam_web_password:ro

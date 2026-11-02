@@ -21,7 +21,8 @@ Older systems continue to run in the browser through EmulatorJS. Webstation stre
 - A scoped Infinity Blade I-III Wine backend using the existing WebStation and
   Selkies stream; game files remain user-supplied.
 - An optional, independently operated LinuxServer Steam/Selkies profile that
-  reuses the host library read-only and launches validated AppIDs from RomM.
+  reuses the host library as its sole active writer and launches validated
+  AppIDs from RomM.
 - Setup, operating, recovery, and ROM-library documentation.
 
 ## Quick start

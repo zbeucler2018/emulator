@@ -4,8 +4,9 @@
 
 This branch adds an optional, independently operated LinuxServer Steam/Selkies
 service to the existing Compose project. It does not merge Steam into
-WebStation, grant Steam access to emulator saves, or make the existing host
-Steam library writable.
+WebStation or grant Steam access to emulator saves. The existing host Steam
+library is writable by the container; host Steam must remain closed while the
+container is running.
 
 Validation on `box` on 2026-11-01 reached the following boundary:
 
@@ -16,8 +17,7 @@ Validation on `box` on 2026-11-01 reached the following boundary:
   deliberately starts with H.264.
 - **Existing library reuse:** verified. Thirteen manifests are staged into the
   isolated Steam home, including five games. Large installation directories
-  remain on the host and appear as read-only links. No game was copied or
-  downloaded.
+  remain on the host and appear as writable links. No game was copied.
 - **Direct AppID path:** verified up to authentication. A real broker request
   constructed `steam -applaunch 892970`, Steam accepted it, status and
   cancellation worked, and no game process appeared because this fresh
@@ -53,7 +53,7 @@ RomM / Steam platform and .steam descriptor
     -> independent LinuxServer Steam desktop and Proton runtime
     -> authenticated Selkies browser session at /steam/
 
-Host Steam library (read-only)
+Host Steam library (read/write; container is the only active Steam client)
     -> copied manifests + zero-copy installation links
     -> isolated /srv/emulator/steam Steam home and Proton prefixes
 ```
@@ -84,7 +84,7 @@ Steam library and remote-launch extension.
 
 | Purpose | Host path | Access from Steam |
 | --- | --- | --- |
-| Existing Steam manifests and game payloads | `/home/service/snap/steam/common/.local/share/Steam/steamapps` | read-only at `/mnt/host-steam/steamapps` |
+| Existing Steam manifests and game payloads | `/home/service/snap/steam/common/.local/share/Steam/steamapps` | read/write at `/mnt/host-steam/steamapps` |
 | Container Steam home, login, Cloud data, caches, local saves, Proton prefixes | `/srv/emulator/steam` | read/write `/config` |
 | RomM AppID descriptors | `/mnt/games/Sophia/games/Steam` | read-only |
 | Browser Basic Auth password | `/srv/emulator/steam-web-password` | read-only file secret |
@@ -100,31 +100,25 @@ The discovered game installations are:
 | 892970 | Valheim |
 
 Only the host `steamapps` tree is exposed; host account data, login state,
-`userdata`, and Steam configuration are not mounted. The source is read-only
-even though the container receives the same UID/GID as the host user.
-Container Steam may update its copied manifests and write prefixes below
-`/config`, but it cannot update or corrupt the host-owned payload. This also
-permits the native host Steam process and the container to coexist without two
-clients writing the same library. Do not change the source mount to read/write
-while both clients can run.
+`userdata`, and Steam configuration are not mounted. The `steamapps` source is
+read/write because pressure-vessel creates runtime `.ref` files there and Steam
+must be able to update games, DLC, manifests, and compatibility runtimes. The
+host Snap Steam client was shut down before this access was enabled. Do not run
+host Steam while the container is running: both use the same UID and concurrent
+writes can corrupt manifests or payloads. Stop the container before starting
+host Steam, and close host Steam before starting the container again.
 
-Read-only reuse has deliberate limitations. Container Steam cannot install an
-update or DLC into an existing host game, repair files after integrity
-verification, or support a game/mod that writes inside its installation
-directory. It may report an update as required until host Steam updates the
-payload. Container-owned Proton prefixes and shader caches remain writable
-under `/srv/emulator/steam`; the host `steamapps/compatdata` and `shadercache`
-directories may be visible through the source mount but are never staged as
-the container's writable state. Update or repair games with host Steam, then
-restart only the Steam service to refresh copied manifests and links.
+Container-owned Proton prefixes, shader caches, account state, and Cloud data
+remain under `/srv/emulator/steam`. Emulator saves remain outside Steam's mount
+scope.
 
 Proton payloads need an exception to direct read-only reuse. An actual Kingdom
 Come launch demonstrated that Steam updates Proton Experimental in place and a
 shallow symlink view fails its commit with `Disk write failure`. The staging
 tool therefore keeps a private writable copy of only the selected 1.5 GB
 Proton Experimental runtime under `/srv/emulator/steam`; other installed Proton
-versions remain read-only views. Game payloads remain host-backed and are not
-duplicated.
+versions and all game payloads remain host-backed and writable through the
+shared library mount. Game payloads are not duplicated.
 
 Refresh the owned catalogue after installing or removing a host game:
 
@@ -291,10 +285,11 @@ Steam Cloud remains a Steam feature: it can synchronize supported titles after
 login, but it is not a substitute for backing up `/srv/emulator/steam`. Games
 that do not support Cloud depend entirely on this local state.
 
-The host game payload is already outside the new writable state and is not
-copied into backups. The descriptor catalogue can be regenerated from host
-manifests. The browser password file should be included in a secure host
-configuration backup or deliberately regenerated and the container recreated.
+The host game payload is outside `/srv/emulator/steam` but is now writable
+deployment state; retain the host library's own backup or recovery strategy.
+The descriptor catalogue can be regenerated from host manifests. The browser
+password file should be included in a secure host configuration backup or
+deliberately regenerated and the container recreated.
 
 ## Operations and diagnostics
 
@@ -320,7 +315,7 @@ docker exec -e XDG_RUNTIME_DIR=/config/.XDG -e WAYLAND_DISPLAY=wayland-1 \
 ```
 
 The expected unauthenticated HTTP result is `401`, and `findmnt` must include
-`ro`. These checks do not start a game.
+`rw`. These checks do not start a game.
 
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort
