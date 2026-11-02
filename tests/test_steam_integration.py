@@ -457,6 +457,12 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn('"127.0.0.1:3020:3000"', compose)
         self.assertIn('- "44"', compose)
         self.assertIn('- "992"', compose)
+        self.assertIn('"c 10:223 rwm"', compose)
+        self.assertIn('"c 13:88 rwm"', compose)
+        self.assertIn('"c 13:2 rwm"', compose)
+        self.assertNotIn("/dev/uinput:/dev/uinput", compose)
+        self.assertIn('SELKIES_UINPUT_GAMEPAD: "true"', compose)
+        self.assertNotIn("privileged: true", compose)
         self.assertIn("STEAM_API_ENABLED: ${STEAM_API_ENABLED:-true}", compose)
         self.assertNotIn("/var/run/docker.sock", compose)
 
@@ -476,6 +482,21 @@ class DeploymentWiringTests(unittest.TestCase):
             / "30-selkies-base-path"
         ).read_text()
         self.assertIn('<base href="/steam/">', init)
+
+    def test_selkies_uinput_node_is_private_to_the_desktop_user(self) -> None:
+        init = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "05-uinput-device"
+        ).read_text()
+        self.assertIn("mknod /dev/uinput c 10 223", init)
+        self.assertIn("chown abc:abc /dev/uinput", init)
+        self.assertIn("chmod 0600 /dev/uinput", init)
+        self.assertIn('[[ -e "/sys/class/input/$node" ]]', init)
+        self.assertIn("mknod /dev/input/event24 c 13 88", init)
+        self.assertIn("mknod /dev/input/js2 c 13 2", init)
 
 
 if __name__ == "__main__":

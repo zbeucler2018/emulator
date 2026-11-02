@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bash
 set -euo pipefail
 
-# Copy only manifests and create links into the read-only bind.  Steam's own
+# Copy only manifests and create links into the host-backed library. Steam's own
 # user data, shader cache, Proton prefixes and Cloud state stay under /config.
 s6-setuidgid abc python3 /opt/romm/bin/steam-library.py \
   --source /mnt/host-steam \

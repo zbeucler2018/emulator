@@ -18,18 +18,18 @@ Validation on `box` on 2026-11-01 reached the following boundary:
 - **Existing library reuse:** verified. Thirteen manifests are staged into the
   isolated Steam home, including five games. Large installation directories
   remain on the host and appear as writable links. No game was copied.
-- **Direct AppID path:** verified up to authentication. A real broker request
-  constructed `steam -applaunch 892970`, Steam accepted it, status and
-  cancellation worked, and no game process appeared because this fresh
-  container is not signed in. This is not a claim that Valheim gameplay ran.
-- **RomM catalogue and launch wiring:** unit-tested and configured, but not yet
-  activated in the running RomM container. RomM was deliberately not restarted
-  while an existing gameplay session might be active. A safe-time restart,
-  library scan, and first Steam sign-in are the remaining manual steps.
-- **Physical clients/controllers:** not verified. The container created four
-  userspace virtual Xbox controller slots and Selkies enabled browser gamepads,
-  but the 8BitDo controller and iPhone/iPad Safari still require real-device
-  testing.
+- **Direct AppID path:** verified after authentication. RomM launched Kingdom
+  Come: Deliverance (AppID 379430) through the broker and Proton, and the game
+  rendered through the browser stream. Its first launch took roughly 30-60
+  seconds while Steam completed first-run work. Keyboard input worked.
+- **RomM catalogue and launch wiring:** verified. The Steam platform is visible
+  in RomM, its game metadata is populated, and selecting Steam launched Kingdom
+  Come through the private broker and opened the Selkies session.
+- **Physical clients/controllers:** partially verified. Chrome and Selkies
+  identified the 8BitDo Ultimate 2C and assigned it to slot 0, but Kingdom Come
+  did not receive the userspace-emulated controller. The service now uses the
+  narrower kernel `/dev/uinput` device path; actual gameplay input and
+  iPhone/iPad Safari still require a real-device retest.
 
 ![Steam client login rendered through the browser-facing Selkies stream at 60 FPS](steam-client-stream-proof.jpg)
 
@@ -151,6 +151,11 @@ The Compose service follows the current
   no Docker socket.
 - The stream uses a fixed 1920x1080 canvas at 60 FPS, H.264, CBR, congestion
   control, and `SELKIES_VIDEO_STREAMING_MODE=true` for game-oriented encoding.
+- The uinput driver (character device 10:223) is allowed only for the Steam
+  service. Startup creates private mode-0600 uinput, event24, and js2 nodes for
+  browser controller slot 0. It refuses startup if those verified free minors
+  become occupied by a host device. Existing host event0-event23 and js0-js1
+  devices remain inaccessible to the container.
 - Shared memory is 2 GiB. Steam/Proton prefer the discrete NVIDIA Vulkan
   device through the usual PRIME and Vulkan environment variables.
 
@@ -212,7 +217,7 @@ Retrieve the generated browser password only from a trusted shell on `box`:
 cat /srv/emulator/steam-web-password
 ```
 
-## First sign-in and RomM activation
+## Authentication and RomM activation
 
 No Steam password or Steam Guard code has been requested, captured, or stored
 by this work. Complete the following when no RomM/WebStation game session is
@@ -226,8 +231,9 @@ active:
    Steam title from RomM. The broker checks the live Steam client account ID
    and rejects unsigned-in launches without reserving the Steam session.
 3. In Steam Settings, force a Proton version for a small test game. LinuxServer
-   recommends Proton even for native Linux games because its userspace browser
-   gamepad interposer is in the Proton path. Do not enable a large download.
+   recommends Proton for games in this image, and it provides a consistent
+   launch path for the kernel-backed virtual Xbox controller. Do not enable a
+   large download.
 4. At a safe time, activate the new RomM configuration without touching the
    other containers:
 
@@ -256,13 +262,15 @@ WebSocket prefix from `window.location.pathname`. The query preserves the
 provider. A SteamGridDB key is optional and is not required for the embedded
 AppID match or official Steam capsule artwork.
 
-Steam Input itself is not supported by the current LinuxServer userspace
-controller design because no kernel `uinput`/HID device is exposed. The image
-creates up to four virtual Xbox-compatible slots and recommends forcing Proton
-so its gamepad interposer reaches the game. Do not add `privileged: true` or
-host `/dev/uinput` merely to imitate a different community image. Keyboard and
-mouse forwarding is enabled. Relative-mouse games may require Steam's gaming
-mode, as documented upstream.
+Selkies now creates its virtual Xbox controllers through a private
+`/dev/uinput` node backed by the host driver. This is the upstream-supported
+kernel path and avoids the userspace `LD_PRELOAD` interposer that Kingdom Come
+did not recognize. The service is still not privileged and cannot read
+physical host input devices.
+Steam Input is not relied upon; if a game's Properties > Controller setting
+overrides the direct Xbox device, set that game to **Disable Steam Input**.
+Keyboard and mouse forwarding remain enabled. Relative-mouse games may require
+Steam's gaming mode, as documented upstream.
 
 `umu-run` and ProtonUp-Qt are included upstream and are useful for launching
 non-Steam Windows titles from TOML or installing alternate Proton builds.
@@ -389,7 +397,7 @@ forum configurations as context rather than requirements:
   commonly uses a writable `/games`, host networking, NVIDIA runtime flags,
   kernel controller modules, and Steam Remote Play. Those are for a different
   image and streaming/input architecture. This deployment keeps the library
-  read-only, uses Selkies, and does not inherit its privileged/controller
+  host-backed, uses Selkies, and does not inherit its privileged/controller
   settings.
 - TrueNAS discussions about a
   [privileged Steam Headless workaround](https://forums.truenas.com/t/25-10-privileged-steam-headless/64113)

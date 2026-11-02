@@ -279,6 +279,9 @@ services:
       SELKIES_ENABLE_RESIZE: "false"
       SELKIES_RATE_CONTROL_MODE: cbr
       SELKIES_CONGESTION_CONTROL: "true"
+      # Use Selkies' kernel-backed Xbox controller path. This avoids the
+      # userspace LD_PRELOAD interposer that Kingdom Come did not recognize.
+      SELKIES_UINPUT_GAMEPAD: "true"
       # Keep the internal `foot -e steam` wrapper executable, but remove it
       # from the browser UI and disable higher-risk desktop capabilities.
       DISABLE_SUDO: "true"
@@ -316,6 +319,14 @@ services:
     devices:
       - /dev/dri:/dev/dri
       - /dev/nvidia-modeset:/dev/nvidia-modeset
+    # Allow the private device node created by 05-uinput-device to reach the
+    # host uinput driver without exposing any host /dev/input devices.
+    device_cgroup_rules:
+      - "c 10:223 rwm"
+      # Slot 0's next free event/joystick nodes on box. 05-uinput-device
+      # refuses startup if either minor is already occupied by a host device.
+      - "c 13:88 rwm"
+      - "c 13:2 rwm"
     group_add:
       - "44"
       - "992"
