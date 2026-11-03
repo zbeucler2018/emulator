@@ -319,14 +319,12 @@ services:
     devices:
       - /dev/dri:/dev/dri
       - /dev/nvidia-modeset:/dev/nvidia-modeset
-    # Allow the private device node created by 05-uinput-device to reach the
-    # host uinput driver without exposing any host /dev/input devices.
+    # Allow private device nodes created inside the container to reach uinput.
+    # Steam Input remaps Selkies' slot-0 pad onto dynamic event/js minors, so
+    # all input minors must be usable here. No host /dev/input tree is mounted.
     device_cgroup_rules:
       - "c 10:223 rwm"
-      # Slot 0's next free event/joystick nodes on box. 05-uinput-device
-      # refuses startup if either minor is already occupied by a host device.
-      - "c 13:85 rwm"
-      - "c 13:1 rwm"
+      - "c 13:* rwm"
     group_add:
       - "44"
       - "992"
