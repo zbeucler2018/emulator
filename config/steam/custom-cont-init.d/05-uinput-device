@@ -11,16 +11,16 @@ chmod 0600 /dev/uinput
 
 # Docker's private /dev does not receive the event nodes created by uinput.
 # Reserve only slot 0's verified next-free nodes; never expose the existing
-# host event0-event23 or js0-js1 devices to this container.
-for node in event24 js2; do
+# host event0-event20 or js0 devices to this container.
+for node in event21 js1; do
   if [[ -e "/sys/class/input/$node" ]]; then
     echo "Refusing to expose occupied host input node $node" >&2
     exit 1
   fi
 done
 
-rm -f /dev/input/event24 /dev/input/js2
-mknod /dev/input/event24 c 13 88
-mknod /dev/input/js2 c 13 2
-chown abc:abc /dev/input/event24 /dev/input/js2
-chmod 0600 /dev/input/event24 /dev/input/js2
+rm -f /dev/input/event21 /dev/input/js1
+mknod /dev/input/event21 c 13 85
+mknod /dev/input/js1 c 13 1
+chown abc:abc /dev/input/event21 /dev/input/js1
+chmod 0600 /dev/input/event21 /dev/input/js1

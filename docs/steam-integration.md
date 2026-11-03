@@ -163,9 +163,9 @@ The Compose service follows the current
 - The stream uses a fixed 1920x1080 canvas at 60 FPS, H.264, CBR, congestion
   control, and `SELKIES_VIDEO_STREAMING_MODE=true` for game-oriented encoding.
 - The uinput driver (character device 10:223) is allowed only for the Steam
-  service. Startup creates private mode-0600 uinput, event24, and js2 nodes for
+  service. Startup creates private mode-0600 uinput, event21, and js1 nodes for
   browser controller slot 0. It refuses startup if those verified free minors
-  become occupied by a host device. Existing host event0-event23 and js0-js1
+  become occupied by a host device. Existing host event0-event20 and js0
   devices remain inaccessible to the container.
 - Shared memory is 2 GiB. Steam/Proton prefer the discrete NVIDIA Vulkan
   device through the usual PRIME and Vulkan environment variables.

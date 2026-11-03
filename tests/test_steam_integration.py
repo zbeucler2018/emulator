@@ -458,8 +458,8 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn('- "44"', compose)
         self.assertIn('- "992"', compose)
         self.assertIn('"c 10:223 rwm"', compose)
-        self.assertIn('"c 13:88 rwm"', compose)
-        self.assertIn('"c 13:2 rwm"', compose)
+        self.assertIn('"c 13:85 rwm"', compose)
+        self.assertIn('"c 13:1 rwm"', compose)
         self.assertNotIn("/dev/uinput:/dev/uinput", compose)
         self.assertIn('SELKIES_UINPUT_GAMEPAD: "true"', compose)
         self.assertNotIn("privileged: true", compose)
@@ -506,8 +506,8 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn("chown abc:abc /dev/uinput", init)
         self.assertIn("chmod 0600 /dev/uinput", init)
         self.assertIn('[[ -e "/sys/class/input/$node" ]]', init)
-        self.assertIn("mknod /dev/input/event24 c 13 88", init)
-        self.assertIn("mknod /dev/input/js2 c 13 2", init)
+        self.assertIn("mknod /dev/input/event21 c 13 85", init)
+        self.assertIn("mknod /dev/input/js1 c 13 1", init)
 
 
 if __name__ == "__main__":
