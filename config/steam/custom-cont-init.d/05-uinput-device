@@ -1,6 +1,17 @@
 #!/usr/bin/with-contenv bash
 set -euo pipefail
 
+# The kernel-created event node keeps box's host input-group GID. LinuxServer's
+# abc privilege drop rebuilds supplementary groups from /etc/group, so make the
+# numeric group visible there before Selkies starts. The name is intentionally
+# resolved rather than assumed because GID 995 is named differently in-image.
+input_group="$(getent group 995 | cut -d: -f1)"
+if [[ -z "$input_group" ]]; then
+  groupadd --gid 995 host-input
+  input_group=host-input
+fi
+usermod --append --groups "$input_group" abc
+
 # Give only the unprivileged desktop user a private node for the host uinput
 # driver. The container never receives the host's physical /dev/input tree.
 if [[ ! -e /dev/uinput ]]; then

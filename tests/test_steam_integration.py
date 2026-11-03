@@ -494,6 +494,10 @@ class DeploymentWiringTests(unittest.TestCase):
             / "20-harden-steam-ui"
         ).read_text()
         self.assertIn("/usr/bin/wrapped-steam -gamepadui", init)
+        self.assertIn('title="Ubisoft Connect"', init)
+        self.assertIn('name="UnSnap"', init)
+        self.assertIn('name="ResizeTo" width="1918" height="1078"', init)
+        self.assertIn("romm-ubisoft-connect-redraw", init)
 
     def test_selkies_uinput_node_is_private_to_the_desktop_user(self) -> None:
         init = (
@@ -504,6 +508,8 @@ class DeploymentWiringTests(unittest.TestCase):
             / "05-uinput-device"
         ).read_text()
         self.assertIn("mknod /dev/uinput c 10 223", init)
+        self.assertIn("getent group 995", init)
+        self.assertIn('usermod --append --groups "$input_group" abc', init)
         self.assertIn("chown abc:abc /dev/uinput", init)
         self.assertIn("chmod 0600 /dev/uinput", init)
         self.assertIn('[[ -e "/sys/class/input/$node" ]]', init)

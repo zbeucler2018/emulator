@@ -337,6 +337,14 @@ docker exec -e XDG_RUNTIME_DIR=/config/.XDG -e WAYLAND_DISPLAY=wayland-1 \
 The expected unauthenticated HTTP result is `401`, and `findmnt` must include
 `rw`. These checks do not start a game.
 
+Ubisoft Connect 175 has a Wine 11/X11 regression that can leave its CEF window
+permanently white even though the client remains responsive. The Steam init
+hook adds a narrowly scoped labwc rule for the main `Ubisoft Connect` window:
+it removes the image-wide maximize state and changes the geometry by two
+pixels, which forces CEF to present its surface. Game windows are not matched.
+This is a display workaround for upstream Wine bug 60557, not a launcher or
+DRM bypass.
+
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort
 graceful request; Steam has no documented per-AppID command equivalent to the
@@ -404,6 +412,9 @@ forum configurations as context rather than requirements:
   documents the per-game `reaper SteamLaunch AppId=...` process used here for
   native and Proton lifecycle detection, its 120-second launch grace, and the
   rule that cancellation must never signal the shared Steam client.
+- [Wine bug 60557](https://bugs.winehq.org/show_bug.cgi?id=60557) documents
+  the Ubisoft Connect 175 blank-window regression and the geometry-change
+  workaround used by the scoped labwc rule.
 - The Unraid community's
   [Steam Headless support thread](https://forums.unraid.net/topic/118390-support-josh5-steam-headless/)
   commonly uses a writable `/games`, host networking, NVIDIA runtime flags,
