@@ -341,9 +341,12 @@ Ubisoft Connect 175 has a Wine 11/X11 regression that can leave its CEF window
 permanently white even though the client remains responsive. The Steam init
 hook adds a narrowly scoped labwc rule for the main `Ubisoft Connect` window:
 it removes the image-wide maximize state and changes the geometry by two
-pixels, which forces CEF to present its surface. Game windows are not matched.
-This is a display workaround for upstream Wine bug 60557, not a launcher or
-DRM bypass.
+pixels, which forces CEF to present its surface. Because Ubisoft sometimes
+assigns the title after the compositor has evaluated its rules, the broker also
+runs a bounded post-launch check and applies the same two-pixel change once the
+exact visible title appears. The check then exits; it is not a window-watching
+daemon. Game windows are not matched. This is a display workaround for
+upstream Wine bug 60557, not a launcher or DRM bypass.
 
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort

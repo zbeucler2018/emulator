@@ -33,6 +33,9 @@ CONNECTION_LOG_BYTES = 256 * 1024
 CONNECTION_STATE = re.compile(
     r"\] \[(?P<state>[^,\]]+)[^\]]*\] \[U:1:(?P<account_id>\d+)\]"
 )
+UBISOFT_WINDOW_TITLE = "^Ubisoft Connect$"
+UBISOFT_WINDOW_WAIT_SECONDS = 30.0
+UBISOFT_WINDOW_POLL_SECONDS = 0.25
 
 
 class BrokerError(RuntimeError):
@@ -227,6 +230,89 @@ class SteamBroker:
         self._session = None
         self._write_state()
 
+    @staticmethod
+    def _nudge_ubisoft_window(
+        *,
+        timeout: float = UBISOFT_WINDOW_WAIT_SECONDS,
+        xdotool_bin: str = "/usr/bin/xdotool",
+    ) -> None:
+        """Force Ubisoft Connect's Wine/CEF surface to present once.
+
+        Ubisoft assigns the window title after mapping, so a compositor rule
+        can miss it. This bounded helper starts only after an accepted Steam
+        launch, waits for the exact visible launcher title, changes its size by
+        two pixels, and exits. It does not remain as a window-watching daemon.
+        """
+        deadline = time.monotonic() + timeout
+        environment = {**os.environ, "DISPLAY": ":0"}
+        while time.monotonic() < deadline:
+            try:
+                found = subprocess.run(
+                    [
+                        xdotool_bin,
+                        "search",
+                        "--onlyvisible",
+                        "--name",
+                        UBISOFT_WINDOW_TITLE,
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                    env=environment,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                return
+            window_id = next(
+                (line.strip() for line in found.stdout.splitlines() if line.strip()),
+                None,
+            )
+            if window_id is None:
+                time.sleep(UBISOFT_WINDOW_POLL_SECONDS)
+                continue
+            try:
+                geometry = subprocess.run(
+                    [xdotool_bin, "getwindowgeometry", "--shell", window_id],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                    env=environment,
+                )
+                dimensions = dict(
+                    line.split("=", 1)
+                    for line in geometry.stdout.splitlines()
+                    if "=" in line
+                )
+                width = int(dimensions["WIDTH"])
+                height = int(dimensions["HEIGHT"])
+                subprocess.run(
+                    [xdotool_bin, "windowsize", window_id, str(width + 2), str(height + 2)],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=2,
+                    check=False,
+                    env=environment,
+                )
+            except (KeyError, ValueError, OSError, subprocess.TimeoutExpired):
+                pass
+            return
+
+    @classmethod
+    def _start_ubisoft_window_nudge(cls) -> None:
+        if not Path("/usr/bin/xdotool").is_file():
+            return
+        threading.Thread(
+            target=cls._nudge_ubisoft_window,
+            name="ubisoft-window-nudge",
+            daemon=True,
+        ).start()
+
     def _reconcile_session(self, *, now: float | None = None) -> tuple[str, list[int]]:
         """Refresh persisted state without a poller or background daemon."""
         if self._session is None:
@@ -290,6 +376,7 @@ class SteamBroker:
                 "seen_running": False,
             }
             self._write_state()
+            self._start_ubisoft_window_nudge()
             return {"status": "launching", "appid": appid}
 
     def status(self) -> dict[str, Any]:

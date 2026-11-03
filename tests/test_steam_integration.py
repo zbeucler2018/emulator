@@ -225,12 +225,40 @@ class BrokerTests(unittest.TestCase):
                 state_path=root / "state.json",
             )
             completed = mock.Mock(returncode=0, stderr="")
-            with mock.patch.object(broker.subprocess, "run", return_value=completed) as run:
+            with (
+                mock.patch.object(broker.subprocess, "run", return_value=completed) as run,
+                mock.patch.object(instance, "_start_ubisoft_window_nudge") as nudge,
+            ):
                 result = instance.launch(str(descriptor))
             self.assertEqual(result, {"status": "launching", "appid": 892970})
             self.assertEqual(run.call_args.args[0], ["/usr/bin/steam", "-applaunch", "892970"])
+            nudge.assert_called_once_with()
             with self.assertRaisesRegex(broker.BrokerError, "already active"):
                 instance.launch(str(descriptor))
+
+    def test_ubisoft_window_nudge_waits_for_title_then_resizes_once(self) -> None:
+        found = mock.Mock(stdout="123\n")
+        geometry = mock.Mock(stdout="WIDTH=714\nHEIGHT=454\n")
+        resized = mock.Mock(stdout="")
+        with mock.patch.object(
+            broker.subprocess, "run", side_effect=[found, geometry, resized]
+        ) as run:
+            broker.SteamBroker._nudge_ubisoft_window(timeout=1)
+
+        self.assertEqual(
+            run.call_args_list[0].args[0],
+            [
+                "/usr/bin/xdotool",
+                "search",
+                "--onlyvisible",
+                "--name",
+                "^Ubisoft Connect$",
+            ],
+        )
+        self.assertEqual(
+            run.call_args_list[2].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "716", "456"],
+        )
 
     def test_rejected_launch_does_not_create_a_session(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
