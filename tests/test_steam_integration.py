@@ -236,14 +236,28 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaisesRegex(broker.BrokerError, "already active"):
                 instance.launch(str(descriptor))
 
-    def test_ubisoft_window_nudge_waits_for_title_then_resizes_once(self) -> None:
+    def test_ubisoft_window_nudge_repeats_and_ends_on_known_good_geometry(self) -> None:
         found = mock.Mock(stdout="123\n")
         geometry = mock.Mock(stdout="WIDTH=714\nHEIGHT=454\n")
+        display = mock.Mock(stdout="1920 1080\n")
         resized = mock.Mock(stdout="")
         with mock.patch.object(
-            broker.subprocess, "run", side_effect=[found, geometry, resized]
+            broker.subprocess,
+            "run",
+            side_effect=[
+                found,
+                geometry,
+                display,
+                resized,
+                resized,
+                found,
+                resized,
+                resized,
+            ],
         ) as run:
-            broker.SteamBroker._nudge_ubisoft_window(timeout=1)
+            broker.SteamBroker._nudge_ubisoft_window(
+                timeout=1, redraws=2, redraw_interval=0, redraw_settle=0
+            )
 
         self.assertEqual(
             run.call_args_list[0].args[0],
@@ -257,8 +271,73 @@ class BrokerTests(unittest.TestCase):
         )
         self.assertEqual(
             run.call_args_list[2].args[0],
+            ["/usr/bin/xdotool", "getdisplaygeometry"],
+        )
+        self.assertEqual(
+            run.call_args_list[3].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "714", "454"],
+        )
+        self.assertEqual(
+            run.call_args_list[4].args[0],
             ["/usr/bin/xdotool", "windowsize", "123", "716", "456"],
         )
+        self.assertEqual(
+            run.call_args_list[6].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "714", "454"],
+        )
+        self.assertEqual(
+            run.call_args_list[7].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "716", "456"],
+        )
+
+    def test_ubisoft_window_nudge_pulses_down_at_display_bounds(self) -> None:
+        found = mock.Mock(stdout="123\n")
+        geometry = mock.Mock(stdout="WIDTH=1920\nHEIGHT=1080\n")
+        display = mock.Mock(stdout="1920 1080\n")
+        resized = mock.Mock(stdout="")
+        with mock.patch.object(
+            broker.subprocess,
+            "run",
+            side_effect=[found, geometry, display, resized, resized],
+        ) as run:
+            broker.SteamBroker._nudge_ubisoft_window(
+                timeout=1, redraws=1, redraw_interval=0, redraw_settle=0
+            )
+
+        self.assertEqual(
+            run.call_args_list[3].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "1918", "1078"],
+        )
+        self.assertEqual(
+            run.call_args_list[4].args[0],
+            ["/usr/bin/xdotool", "windowsize", "123", "1920", "1080"],
+        )
+
+    def test_ubisoft_window_nudge_retries_during_display_reconfiguration(self) -> None:
+        found = mock.Mock(stdout="123\n")
+        geometry = mock.Mock(stdout="WIDTH=1918\nHEIGHT=1078\n")
+        display = mock.Mock(stdout="1920 1080\n")
+        resized = mock.Mock(stdout="")
+        with (
+            mock.patch.object(
+                broker.subprocess,
+                "run",
+                side_effect=[
+                    broker.subprocess.TimeoutExpired("xdotool", 2),
+                    found,
+                    geometry,
+                    display,
+                    resized,
+                    resized,
+                ],
+            ) as run,
+            mock.patch.object(broker.time, "sleep"),
+        ):
+            broker.SteamBroker._nudge_ubisoft_window(
+                timeout=1, redraws=1, redraw_interval=0, redraw_settle=0
+            )
+
+        self.assertEqual(run.call_count, 6)
 
     def test_rejected_launch_does_not_create_a_session(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

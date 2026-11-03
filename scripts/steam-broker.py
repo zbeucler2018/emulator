@@ -34,8 +34,11 @@ CONNECTION_STATE = re.compile(
     r"\] \[(?P<state>[^,\]]+)[^\]]*\] \[U:1:(?P<account_id>\d+)\]"
 )
 UBISOFT_WINDOW_TITLE = "^Ubisoft Connect$"
-UBISOFT_WINDOW_WAIT_SECONDS = 30.0
+UBISOFT_WINDOW_WAIT_SECONDS = 120.0
 UBISOFT_WINDOW_POLL_SECONDS = 0.25
+UBISOFT_WINDOW_REDRAWS = 20
+UBISOFT_WINDOW_REDRAW_INTERVAL_SECONDS = 2.0
+UBISOFT_WINDOW_REDRAW_SETTLE_SECONDS = 0.15
 
 
 class BrokerError(RuntimeError):
@@ -234,18 +237,29 @@ class SteamBroker:
     def _nudge_ubisoft_window(
         *,
         timeout: float = UBISOFT_WINDOW_WAIT_SECONDS,
+        redraws: int = UBISOFT_WINDOW_REDRAWS,
+        redraw_interval: float = UBISOFT_WINDOW_REDRAW_INTERVAL_SECONDS,
+        redraw_settle: float = UBISOFT_WINDOW_REDRAW_SETTLE_SECONDS,
         xdotool_bin: str = "/usr/bin/xdotool",
     ) -> None:
-        """Force Ubisoft Connect's Wine/CEF surface to present once.
+        """Keep Ubisoft Connect's Wine/CEF surface presenting during startup.
 
         Ubisoft assigns the window title after mapping, so a compositor rule
-        can miss it. This bounded helper starts only after an accepted Steam
-        launch, waits for the exact visible launcher title, changes its size by
-        two pixels, and exits. It does not remain as a window-watching daemon.
+        can miss it. Selkies also changes display DPI while a RomM browser
+        session connects, which can blank the CEF surface again after an early
+        redraw. This bounded helper starts only after an accepted Steam launch,
+        waits for the exact visible launcher title, and pulses between its
+        compositor-assigned geometry and a two-pixel-larger geometry a few
+        times during browser startup. Every pulse ends on the larger, known-
+        good geometry before the helper exits. It is not a window-watching
+        daemon.
         """
         deadline = time.monotonic() + timeout
         environment = {**os.environ, "DISPLAY": ":0"}
-        while time.monotonic() < deadline:
+        completed_redraws = 0
+        selected_window: str | None = None
+        baseline: tuple[int, int] | None = None
+        while time.monotonic() < deadline and completed_redraws < redraws:
             try:
                 found = subprocess.run(
                     [
@@ -264,7 +278,8 @@ class SteamBroker:
                     env=environment,
                 )
             except (OSError, subprocess.TimeoutExpired):
-                return
+                time.sleep(UBISOFT_WINDOW_POLL_SECONDS)
+                continue
             window_id = next(
                 (line.strip() for line in found.stdout.splitlines() if line.strip()),
                 None,
@@ -273,23 +288,70 @@ class SteamBroker:
                 time.sleep(UBISOFT_WINDOW_POLL_SECONDS)
                 continue
             try:
-                geometry = subprocess.run(
-                    [xdotool_bin, "getwindowgeometry", "--shell", window_id],
+                if window_id != selected_window or baseline is None:
+                    geometry = subprocess.run(
+                        [xdotool_bin, "getwindowgeometry", "--shell", window_id],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        timeout=2,
+                        check=False,
+                        env=environment,
+                    )
+                    dimensions = dict(
+                        line.split("=", 1)
+                        for line in geometry.stdout.splitlines()
+                        if "=" in line
+                    )
+                    display = subprocess.run(
+                        [xdotool_bin, "getdisplaygeometry"],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        timeout=2,
+                        check=False,
+                        env=environment,
+                    )
+                    display_width, display_height = (
+                        int(value) for value in display.stdout.split()
+                    )
+                    current_width = int(dimensions["WIDTH"])
+                    current_height = int(dimensions["HEIGHT"])
+                    # xdotool cannot grow a maximized-size window beyond the
+                    # canvas. In that state, pulse down and back up instead of
+                    # issuing a clamped no-op.
+                    baseline = (
+                        current_width - 2
+                        if current_width >= display_width
+                        else current_width,
+                        current_height - 2
+                        if current_height >= display_height
+                        else current_height,
+                    )
+                    selected_window = window_id
+                    # The launcher can take most of the wait allowance to
+                    # appear. Once found, reserve enough bounded time for all
+                    # startup pulses even if the original deadline is close.
+                    deadline = max(
+                        deadline,
+                        time.monotonic()
+                        + redraws * (redraw_interval + redraw_settle)
+                        + 2,
+                    )
+                width, height = baseline
+                subprocess.run(
+                    [xdotool_bin, "windowsize", window_id, str(width), str(height)],
                     stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    text=True,
                     timeout=2,
                     check=False,
                     env=environment,
                 )
-                dimensions = dict(
-                    line.split("=", 1)
-                    for line in geometry.stdout.splitlines()
-                    if "=" in line
-                )
-                width = int(dimensions["WIDTH"])
-                height = int(dimensions["HEIGHT"])
+                if redraw_settle:
+                    time.sleep(redraw_settle)
                 subprocess.run(
                     [xdotool_bin, "windowsize", window_id, str(width + 2), str(height + 2)],
                     stdin=subprocess.DEVNULL,
@@ -300,8 +362,23 @@ class SteamBroker:
                     env=environment,
                 )
             except (KeyError, ValueError, OSError, subprocess.TimeoutExpired):
-                pass
-            return
+                # Selkies briefly reconfigures X while applying the browser's
+                # DPI. That is the condition this workaround is meant to
+                # survive, so retry rather than abandoning the launch.
+                selected_window = None
+                baseline = None
+                time.sleep(UBISOFT_WINDOW_POLL_SECONDS)
+                continue
+            if completed_redraws == 0:
+                print("steam-broker: Ubisoft Connect redraw active", flush=True)
+            completed_redraws += 1
+            if completed_redraws < redraws and redraw_interval:
+                time.sleep(redraw_interval)
+        if completed_redraws:
+            print(
+                f"steam-broker: Ubisoft Connect redraw finished ({completed_redraws} pulses)",
+                flush=True,
+            )
 
     @classmethod
     def _start_ubisoft_window_nudge(cls) -> None:
