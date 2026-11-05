@@ -236,11 +236,11 @@ class BrokerTests(unittest.TestCase):
             with self.assertRaisesRegex(broker.BrokerError, "already active"):
                 instance.launch(str(descriptor))
 
-    def test_ubisoft_window_nudge_repeats_and_ends_on_known_good_geometry(self) -> None:
+    def test_ubisoft_window_nudge_resizes_and_remaps_exact_window(self) -> None:
         found = mock.Mock(stdout="123\n")
         geometry = mock.Mock(stdout="WIDTH=714\nHEIGHT=454\n")
         display = mock.Mock(stdout="1920 1080\n")
-        resized = mock.Mock(stdout="")
+        completed = mock.Mock(stdout="")
         with mock.patch.object(
             broker.subprocess,
             "run",
@@ -248,15 +248,15 @@ class BrokerTests(unittest.TestCase):
                 found,
                 geometry,
                 display,
-                resized,
-                resized,
-                found,
-                resized,
-                resized,
+                completed,
+                completed,
+                completed,
+                completed,
+                completed,
             ],
         ) as run:
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, redraws=2, redraw_interval=0, redraw_settle=0
+                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
             )
 
         self.assertEqual(
@@ -282,26 +282,39 @@ class BrokerTests(unittest.TestCase):
             ["/usr/bin/xdotool", "windowsize", "123", "716", "456"],
         )
         self.assertEqual(
+            run.call_args_list[5].args[0],
+            ["/usr/bin/xdotool", "windowunmap", "123"],
+        )
+        self.assertEqual(
             run.call_args_list[6].args[0],
-            ["/usr/bin/xdotool", "windowsize", "123", "714", "454"],
+            ["/usr/bin/xdotool", "windowmap", "--sync", "123"],
         )
         self.assertEqual(
             run.call_args_list[7].args[0],
-            ["/usr/bin/xdotool", "windowsize", "123", "716", "456"],
+            ["/usr/bin/xdotool", "windowfocus", "--sync", "123"],
         )
 
     def test_ubisoft_window_nudge_pulses_down_at_display_bounds(self) -> None:
         found = mock.Mock(stdout="123\n")
         geometry = mock.Mock(stdout="WIDTH=1920\nHEIGHT=1080\n")
         display = mock.Mock(stdout="1920 1080\n")
-        resized = mock.Mock(stdout="")
+        completed = mock.Mock(stdout="")
         with mock.patch.object(
             broker.subprocess,
             "run",
-            side_effect=[found, geometry, display, resized, resized],
+            side_effect=[
+                found,
+                geometry,
+                display,
+                completed,
+                completed,
+                completed,
+                completed,
+                completed,
+            ],
         ) as run:
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, redraws=1, redraw_interval=0, redraw_settle=0
+                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
             )
 
         self.assertEqual(
@@ -317,7 +330,7 @@ class BrokerTests(unittest.TestCase):
         found = mock.Mock(stdout="123\n")
         geometry = mock.Mock(stdout="WIDTH=1918\nHEIGHT=1078\n")
         display = mock.Mock(stdout="1920 1080\n")
-        resized = mock.Mock(stdout="")
+        completed = mock.Mock(stdout="")
         with (
             mock.patch.object(
                 broker.subprocess,
@@ -327,17 +340,20 @@ class BrokerTests(unittest.TestCase):
                     found,
                     geometry,
                     display,
-                    resized,
-                    resized,
+                    completed,
+                    completed,
+                    completed,
+                    completed,
+                    completed,
                 ],
             ) as run,
             mock.patch.object(broker.time, "sleep"),
         ):
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, redraws=1, redraw_interval=0, redraw_settle=0
+                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
             )
 
-        self.assertEqual(run.call_count, 6)
+        self.assertEqual(run.call_count, 9)
 
     def test_rejected_launch_does_not_create_a_session(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

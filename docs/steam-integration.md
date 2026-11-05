@@ -344,13 +344,13 @@ it removes the image-wide maximize state and changes the geometry by two
 pixels, which forces CEF to present its surface. Because Ubisoft sometimes
 assigns the title after the compositor has evaluated its rules, the broker also
 runs a bounded post-launch check, waits up to two minutes for a slow launcher,
-and briefly pulses the exact visible window's size during browser startup.
-Repeating the pulse is necessary because the RomM browser connection changes
-Selkies' display DPI after the launcher first appears, which can blank CEF a
-second time. Each pulse ends on the known-good two-pixel offset geometry, and
-the check then exits; it is not a window-watching daemon. Game windows are not
-matched. This is a display workaround for upstream Wine bug 60557, not a
-launcher or DRM bypass.
+and settles past Selkies' browser DPI handshake. It applies the two-pixel Wine
+geometry workaround, then unmaps and remaps only the exact launcher window.
+The remap is required because Xwayland's backing buffer can contain the fully
+rendered login form while nested Labwc continues presenting a white surface to
+Selkies; remapping makes Labwc import the current buffer. The check then exits;
+it is not a window-watching daemon, and game windows are not matched. This is a
+display workaround for upstream Wine bug 60557, not a launcher or DRM bypass.
 
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort
