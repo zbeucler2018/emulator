@@ -20,18 +20,38 @@ fi
 chown abc:abc /dev/uinput
 chmod 0600 /dev/uinput
 
-# Docker's private /dev does not receive the event nodes created by uinput.
-# Reserve only slot 0's verified next-free nodes; never expose the existing
-# host event0-event20 or js0 devices to this container.
-for node in event21 js1; do
+# Docker's private /dev does not receive nodes created through uinput. Steam
+# Input creates four virtual pads before Selkies creates the browser pad, so
+# slot 0 is normally event25/js5 rather than event21/js1. Reserve the bounded
+# range used by those four Steam pads and Selkies' four browser slots. Refuse
+# startup if the host already owns any member of the range rather than exposing
+# an unrelated host input device to the container.
+for index in $(seq 21 28); do
+  node="event$index"
+  if [[ -e "/sys/class/input/$node" ]]; then
+    echo "Refusing to expose occupied host input node $node" >&2
+    exit 1
+  fi
+done
+for index in $(seq 1 8); do
+  node="js$index"
   if [[ -e "/sys/class/input/$node" ]]; then
     echo "Refusing to expose occupied host input node $node" >&2
     exit 1
   fi
 done
 
-rm -f /dev/input/event21 /dev/input/js1
-mknod /dev/input/event21 c 13 85
-mknod /dev/input/js1 c 13 1
-chown abc:abc /dev/input/event21 /dev/input/js1
-chmod 0600 /dev/input/event21 /dev/input/js1
+for index in $(seq 21 28); do
+  node="/dev/input/event$index"
+  rm -f "$node"
+  mknod "$node" c 13 "$((64 + index))"
+  chown abc:abc "$node"
+  chmod 0600 "$node"
+done
+for index in $(seq 1 8); do
+  node="/dev/input/js$index"
+  rm -f "$node"
+  mknod "$node" c 13 "$index"
+  chown abc:abc "$node"
+  chmod 0600 "$node"
+done

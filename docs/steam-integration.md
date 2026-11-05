@@ -163,11 +163,12 @@ The Compose service follows the current
 - The stream uses a fixed 1920x1080 canvas at 60 FPS, H.264, CBR, congestion
   control, and `SELKIES_VIDEO_STREAMING_MODE=true` for game-oriented encoding.
 - The uinput driver (character device 10:223) is allowed only for the Steam
-  service. Startup creates private mode-0600 uinput, event21, and js1 nodes for
-  browser controller slot 0. Steam Input creates additional remapped event/js
-  nodes dynamically, so input minors are allowed by the device cgroup. The host
-  `/dev/input` tree is not mounted, so physical host devices remain inaccessible
-  to the container.
+  service. Steam Input creates four virtual pads before Selkies creates the
+  browser pad, which puts the first browser controller on `event25/js5` in the
+  verified deployment. Startup reserves a guarded mode-0600 pool covering
+  `event21`-`event28` and `js1`-`js8`; it refuses to start if the host already
+  owns any node in that range. The host `/dev/input` tree is not mounted, so
+  physical host devices remain inaccessible to the container.
 - Shared memory is 2 GiB. Steam/Proton prefer the discrete NVIDIA Vulkan
   device through the usual PRIME and Vulkan environment variables.
 
@@ -279,6 +280,12 @@ Selkies now creates its virtual Xbox controllers through a private
 kernel path and avoids the userspace `LD_PRELOAD` interposer that Kingdom Come
 did not recognize. The service is still not privileged and cannot read
 physical host input devices.
+Docker's private `/dev` does not automatically receive the event and joystick
+nodes created by uinput. The guarded node pool described above makes those
+kernel devices available to Steam and Proton without mounting the host's input
+tree. Selkies logs the active pair when a browser controller connects; an
+`is not readable by this user` warning means the pool does not cover the node
+that was assigned and controller input will not reach the game.
 Steam Input is not relied upon; if a game's Properties > Controller setting
 overrides the direct Xbox device, set that game to **Disable Steam Input**.
 Keyboard and mouse forwarding remain enabled. Relative-mouse games may require

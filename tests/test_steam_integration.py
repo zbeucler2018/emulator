@@ -636,8 +636,11 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn("chown abc:abc /dev/uinput", init)
         self.assertIn("chmod 0600 /dev/uinput", init)
         self.assertIn('[[ -e "/sys/class/input/$node" ]]', init)
-        self.assertIn("mknod /dev/input/event21 c 13 85", init)
-        self.assertIn("mknod /dev/input/js1 c 13 1", init)
+        self.assertIn("for index in $(seq 21 28)", init)
+        self.assertIn("for index in $(seq 1 8)", init)
+        self.assertIn('mknod "$node" c 13 "$((64 + index))"', init)
+        self.assertIn('mknod "$node" c 13 "$index"', init)
+        self.assertNotIn("/dev/input:/dev/input", init)
 
 
 if __name__ == "__main__":
