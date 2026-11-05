@@ -171,6 +171,14 @@ The Compose service follows the current
   physical host devices remain inaccessible to the container.
 - Shared memory is 2 GiB. Steam/Proton prefer the discrete NVIDIA Vulkan
   device through the usual PRIME and Vulkan environment variables.
+- NVIDIA Container Toolkit 1.20.1 generated a CDI spec on `box` containing
+  only the amd64 driver libraries even though `libnvidia-gl-580:i386` is
+  installed and `NVIDIA_DRIVER_CAPABILITIES=all` is set. Older x86 games then
+  fell back to CPU `llvmpipe`; Black Flag reached Ubisoft Connect but its game
+  process white-screened and exited. Compose therefore bind-mounts the six
+  matching 580.178.04 i386 Vulkan libraries into Steam. After an NVIDIA driver
+  upgrade, update those versioned source and target paths together before
+  recreating the service.
 
 The upstream [Selkies configuration guide](https://docs.linuxserver.io/selkies/user-guide/configuration/)
 defines both WebSocket and WebRTC modes. WebSockets are deployed here because
@@ -187,9 +195,11 @@ guides if evaluating it later, and keep the WebSocket profile available as the
 known-good rollback.
 
 Steam's own startup diagnostic may mention llvmpipe when its legacy X11 probe
-runs in the Wayland session. That is not the acceleration verdict. The tested
-`vkcube --wsi wayland --gpu_number 0` selected `NVIDIA GeForce RTX 4070 Ti`,
-and `nvidia-smi` showed the process on that GPU.
+runs in the Wayland session, but a game's fresh Proton log must not select it.
+Verify both architectures after driver or container-toolkit changes. The
+deployed 32-bit `vkcube` selected `NVIDIA GeForce RTX 4070 Ti`, the fresh Black
+Flag x86 DXVK log found NVIDIA and skipped the software driver, and
+`nvidia-smi` showed the GPU inside the container.
 
 ## Security and access
 

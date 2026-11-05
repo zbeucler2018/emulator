@@ -565,6 +565,24 @@ class BrokerTests(unittest.TestCase):
 
 
 class DeploymentWiringTests(unittest.TestCase):
+    def test_compose_exposes_matching_32_bit_nvidia_vulkan_driver(self) -> None:
+        compose = (ROOT / "docker-compose.yml").read_text()
+        for library in (
+            "libGLX_nvidia.so.580.178.04",
+            "libnvidia-glcore.so.580.178.04",
+            "libnvidia-tls.so.580.178.04",
+            "libnvidia-glsi.so.580.178.04",
+            "libnvidia-gpucomp.so.580.178.04",
+            "libnvidia-glvkspirv.so.580.178.04",
+        ):
+            path = f"/usr/lib/i386-linux-gnu/{library}"
+            self.assertIn(f"- {path}:{path}:ro", compose)
+        self.assertIn(
+            "/usr/lib/i386-linux-gnu/libGLX_nvidia.so.580.178.04:"
+            "/usr/lib/i386-linux-gnu/libGLX_nvidia.so.0:ro",
+            compose,
+        )
+
     def test_compose_is_optional_pinned_and_library_is_writable(self) -> None:
         compose = (ROOT / "docker-compose.yml").read_text()
         self.assertIn('profiles: ["steam"]', compose)

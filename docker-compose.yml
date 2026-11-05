@@ -305,6 +305,16 @@ services:
       # RomM sees these descriptors at the same absolute container path.
       - /mnt/games/Sophia/games/Steam:/romm/library/roms/Steam:ro
       - /srv/emulator/steam-web-password:/run/secrets/steam_web_password:ro
+      # Docker's NVIDIA CDI spec currently injects only the 64-bit driver
+      # libraries on box. Proton needs the matching 32-bit Vulkan driver for
+      # older games such as Black Flag; without it DXVK silently uses llvmpipe.
+      - /usr/lib/i386-linux-gnu/libGLX_nvidia.so.580.178.04:/usr/lib/i386-linux-gnu/libGLX_nvidia.so.580.178.04:ro
+      - /usr/lib/i386-linux-gnu/libGLX_nvidia.so.580.178.04:/usr/lib/i386-linux-gnu/libGLX_nvidia.so.0:ro
+      - /usr/lib/i386-linux-gnu/libnvidia-glcore.so.580.178.04:/usr/lib/i386-linux-gnu/libnvidia-glcore.so.580.178.04:ro
+      - /usr/lib/i386-linux-gnu/libnvidia-tls.so.580.178.04:/usr/lib/i386-linux-gnu/libnvidia-tls.so.580.178.04:ro
+      - /usr/lib/i386-linux-gnu/libnvidia-glsi.so.580.178.04:/usr/lib/i386-linux-gnu/libnvidia-glsi.so.580.178.04:ro
+      - /usr/lib/i386-linux-gnu/libnvidia-gpucomp.so.580.178.04:/usr/lib/i386-linux-gnu/libnvidia-gpucomp.so.580.178.04:ro
+      - /usr/lib/i386-linux-gnu/libnvidia-glvkspirv.so.580.178.04:/usr/lib/i386-linux-gnu/libnvidia-glvkspirv.so.580.178.04:ro
       - ./scripts/steam-library.py:/opt/romm/bin/steam-library.py:ro
       - ./scripts/steam-broker.py:/opt/romm/bin/steam-broker.py:ro
       - ./config/steam/custom-cont-init.d:/custom-cont-init.d:ro
