@@ -256,7 +256,11 @@ class BrokerTests(unittest.TestCase):
             ],
         ) as run:
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
+                timeout=1,
+                initial_settle=0,
+                resize_settle=0,
+                remap_settle=0,
+                focus_guard=0,
             )
 
         self.assertEqual(
@@ -314,7 +318,11 @@ class BrokerTests(unittest.TestCase):
             ],
         ) as run:
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
+                timeout=1,
+                initial_settle=0,
+                resize_settle=0,
+                remap_settle=0,
+                focus_guard=0,
             )
 
         self.assertEqual(
@@ -350,10 +358,35 @@ class BrokerTests(unittest.TestCase):
             mock.patch.object(broker.time, "sleep"),
         ):
             broker.SteamBroker._nudge_ubisoft_window(
-                timeout=1, initial_settle=0, resize_settle=0, remap_settle=0
+                timeout=1,
+                initial_settle=0,
+                resize_settle=0,
+                remap_settle=0,
+                focus_guard=0,
             )
 
         self.assertEqual(run.call_count, 9)
+
+    def test_ubisoft_focus_guard_repairs_active_window_focus(self) -> None:
+        active = mock.Mock(stdout="100\n")
+        title = mock.Mock(stdout="Ubisoft Connect\n")
+        focused = mock.Mock(stdout="200\n")
+        completed = mock.Mock(stdout="")
+        with (
+            mock.patch.object(
+                broker.subprocess,
+                "run",
+                side_effect=[active, title, focused, completed],
+            ) as run,
+            mock.patch.object(broker.time, "monotonic", side_effect=[0, 0, 2]),
+            mock.patch.object(broker.time, "sleep"),
+        ):
+            broker.SteamBroker._guard_ubisoft_keyboard_focus(timeout=1, poll=0)
+
+        self.assertEqual(
+            run.call_args_list[-1].args[0],
+            ["/usr/bin/xdotool", "windowfocus", "--sync", "100"],
+        )
 
     def test_rejected_launch_does_not_create_a_session(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

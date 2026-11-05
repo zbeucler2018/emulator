@@ -39,6 +39,8 @@ UBISOFT_WINDOW_POLL_SECONDS = 0.25
 UBISOFT_WINDOW_INITIAL_SETTLE_SECONDS = 2.0
 UBISOFT_WINDOW_RESIZE_SETTLE_SECONDS = 0.15
 UBISOFT_WINDOW_REMAP_SETTLE_SECONDS = 0.5
+UBISOFT_FOCUS_GUARD_SECONDS = 180.0
+UBISOFT_FOCUS_POLL_SECONDS = 1.0
 
 
 class BrokerError(RuntimeError):
@@ -240,6 +242,7 @@ class SteamBroker:
         initial_settle: float = UBISOFT_WINDOW_INITIAL_SETTLE_SECONDS,
         resize_settle: float = UBISOFT_WINDOW_RESIZE_SETTLE_SECONDS,
         remap_settle: float = UBISOFT_WINDOW_REMAP_SETTLE_SECONDS,
+        focus_guard: float = UBISOFT_FOCUS_GUARD_SECONDS,
         xdotool_bin: str = "/usr/bin/xdotool",
     ) -> None:
         """Make Ubisoft Connect's Xwayland surface visible to Selkies.
@@ -382,7 +385,85 @@ class SteamBroker:
                 time.sleep(UBISOFT_WINDOW_POLL_SECONDS)
                 continue
             print("steam-broker: Ubisoft Connect compositor remap completed", flush=True)
+            if focus_guard:
+                SteamBroker._guard_ubisoft_keyboard_focus(
+                    timeout=focus_guard,
+                    xdotool_bin=xdotool_bin,
+                )
             return
+
+    @staticmethod
+    def _guard_ubisoft_keyboard_focus(
+        *,
+        timeout: float = UBISOFT_FOCUS_GUARD_SECONDS,
+        poll: float = UBISOFT_FOCUS_POLL_SECONDS,
+        xdotool_bin: str = "/usr/bin/xdotool",
+    ) -> None:
+        """Repair focus when Ubisoft replaces its initial launcher window.
+
+        Ubisoft maps a second fullscreen CEF window after the compositor nudge
+        has already completed. Labwc can mark that window active while X input
+        focus remains on Steam Big Picture, leaving browser keyboard events
+        dead. Keep the existing launch helper alive for a bounded interval and
+        focus only an already-active Ubisoft window; never activate a window or
+        take focus away from the game.
+        """
+        deadline = time.monotonic() + timeout
+        environment = {**os.environ, "DISPLAY": ":0"}
+        while time.monotonic() < deadline:
+            try:
+                active = subprocess.run(
+                    [xdotool_bin, "getactivewindow"],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                    env=environment,
+                )
+                window_id = active.stdout.strip()
+                if not window_id:
+                    time.sleep(poll)
+                    continue
+                title = subprocess.run(
+                    [xdotool_bin, "getwindowname", window_id],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    timeout=2,
+                    check=False,
+                    env=environment,
+                )
+                if title.stdout.strip() == "Ubisoft Connect":
+                    focused = subprocess.run(
+                        [xdotool_bin, "getwindowfocus"],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        timeout=2,
+                        check=False,
+                        env=environment,
+                    )
+                    if focused.stdout.strip() != window_id:
+                        subprocess.run(
+                            [xdotool_bin, "windowfocus", "--sync", window_id],
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            timeout=2,
+                            check=False,
+                            env=environment,
+                        )
+                        print(
+                            "steam-broker: restored Ubisoft Connect keyboard focus",
+                            flush=True,
+                        )
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+            time.sleep(poll)
 
     @classmethod
     def _start_ubisoft_window_nudge(cls) -> None:
