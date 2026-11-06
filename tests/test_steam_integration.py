@@ -619,6 +619,7 @@ class DeploymentWiringTests(unittest.TestCase):
         {
             "242050"
             {
+                "LaunchOptions"        "SteamNoOverlayUI=1 %command%"
                 "Playtime"        "213"
             }
         }
@@ -654,6 +655,10 @@ class DeploymentWiringTests(unittest.TestCase):
             )
             self.assertIn(
                 '"413080"\n        {\n            "UseSteamControllerConfig"        "0"',
+                updated,
+            )
+            self.assertIn(
+                '"LaunchOptions"        "LD_PRELOAD= SteamNoOverlayUI=1 %command%"',
                 updated,
             )
 
@@ -794,9 +799,13 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn('usermod --append --groups "$input_group" abc', init)
         self.assertIn("chown abc:abc /dev/uinput", init)
         self.assertIn("chmod 0600 /dev/uinput", init)
-        self.assertIn('[[ -e "/sys/class/input/$node" ]]', init)
+        self.assertIn('[[ -e "/sys/class/input/event$index" ]]', init)
+        self.assertIn('[[ -e "/sys/class/input/js$index" ]]', init)
         self.assertIn("for index in $(seq 21 28)", init)
         self.assertIn("for index in $(seq 1 8)", init)
+        self.assertIn("Skipping occupied host input node event$index", init)
+        self.assertIn("Skipping occupied host input node js$index", init)
+        self.assertNotIn("Refusing to expose occupied host input node", init)
         self.assertIn('mknod "$node" c 13 "$((64 + index))"', init)
         self.assertIn('mknod "$node" c 13 "$index"', init)
         self.assertNotIn("/dev/input:/dev/input", init)

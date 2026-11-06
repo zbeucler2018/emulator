@@ -14,6 +14,7 @@ DEFAULT_LOCALCONFIG = Path(
     "/config/.local/share/Steam/userdata/1601339192/config/localconfig.vdf"
 )
 BLACK_FLAG_APPID = "242050"
+BLACK_FLAG_LAUNCH_PREFIX = "LD_PRELOAD= "
 
 
 def _block(text: str, key: str, start: int = 0, end: int | None = None) -> tuple[int, int] | None:
@@ -95,6 +96,45 @@ def repair_black_flag_steam_input(path: Path) -> bool:
     return True
 
 
+def repair_black_flag_launch_options(path: Path) -> bool:
+    """Keep Selkies' fake udev shim out of Black Flag's Proton process."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return False
+
+    cursor = 0
+    while apps := _block(text, "apps", cursor):
+        app = _block(text, BLACK_FLAG_APPID, *apps)
+        if app is not None:
+            launch_options = re.search(
+                r'("LaunchOptions"[ \t]+)"(?P<value>[^"\r\n]*)"',
+                text[app[0] : app[1]],
+            )
+            if launch_options is not None:
+                value = launch_options.group("value")
+                if value.startswith(BLACK_FLAG_LAUNCH_PREFIX):
+                    return False
+                value_start = app[0] + launch_options.start("value")
+                updated = (
+                    text[:value_start]
+                    + BLACK_FLAG_LAUNCH_PREFIX
+                    + text[value_start:]
+                )
+                metadata = path.stat()
+                temporary = path.with_name(f".{path.name}.launch-options-{os.getpid()}")
+                try:
+                    temporary.write_text(updated, encoding="utf-8")
+                    os.chmod(temporary, metadata.st_mode)
+                    os.chown(temporary, metadata.st_uid, metadata.st_gid)
+                    os.replace(temporary, path)
+                finally:
+                    temporary.unlink(missing_ok=True)
+                return True
+        cursor = apps[1] + 1
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", nargs="?", type=Path, default=DEFAULT_LOCALCONFIG)
@@ -103,6 +143,12 @@ def main() -> int:
         print(
             "steam-input-preflight: restored Steam Input for Black Flag "
             "(UseSteamControllerConfig=2)",
+            flush=True,
+        )
+    if repair_black_flag_launch_options(args.path):
+        print(
+            "steam-input-preflight: removed Selkies LD_PRELOAD shims from "
+            "Black Flag's Proton process",
             flush=True,
         )
     return 0

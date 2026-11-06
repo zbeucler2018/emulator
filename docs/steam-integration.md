@@ -377,6 +377,12 @@ setting now lives in the persistent `/srv/emulator/steam` configuration as
 `2`. On every container start, `15-steam-input-preflight` runs before Steam and
 changes only that known disabled override from `0` back to `2`. It does not
 alter other games or overwrite an already-enabled/custom controller setting.
+The same targeted preflight prefixes Black Flag's existing launch options with
+`LD_PRELOAD=`. LinuxServer's Selkies interposer must remain loaded in the Steam
+client, but inheriting its fake `libudev` into Black Flag's Proton process hides
+Steam Input's real virtual XInput device behind four inert fake devices. The
+per-game override leaves Steam and browser forwarding unchanged while allowing
+Proton to enumerate Steam Input's controller output.
 
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort
