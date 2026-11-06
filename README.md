@@ -20,6 +20,9 @@ Older systems continue to run in the browser through EmulatorJS. Webstation stre
   isolated RomM saves, and two indexed browser gamepads.
 - A scoped Infinity Blade I-III Wine backend using the existing WebStation and
   Selkies stream; game files remain user-supplied.
+- An optional, independently operated LinuxServer Steam/Selkies profile that
+  reuses the host library as its sole active writer and launches validated
+  AppIDs from RomM.
 - Setup, operating, recovery, and ROM-library documentation.
 
 ## Quick start
@@ -45,6 +48,7 @@ Do not run Tailscale Funnel and do not change the Compose port binding to `0.0.0
 | Webstation emulator configuration, firmware, and stream state | `/srv/emulator/webstation` | local app host; back up separately |
 | Versioned Retro Rewind assets and descriptor | `/srv/emulator/retro-rewind` | local app host; read-only in WebStation |
 | Shared Dolphin Wii Mii database | `/srv/emulator/webstation/.romm-shared/dolphin-wii/RFL_DB.dat` | local app host; shared by Wii games |
+| Steam login, Cloud state, local saves, caches, and Proton prefixes | `/srv/emulator/steam` | local app host; independent from emulator saves |
 
 RomM stores saves and states together under its own per-user/per-ROM asset tree. This is an intentional adaptation of the PRD's separate `saves/` and `states/` directories: RomM needs one asset root to reliably associate both asset types with the user and ROM. The whole asset tree remains on the game disk and is included in the save backup snapshots.
 
@@ -69,3 +73,7 @@ ports are not included: [Infinity Blade through RomM](docs/infinity-blade.md).
 
 Mario Kart Wii: Retro Rewind installation, activation, controllers, saves, and
 rollback are documented in [docs/retro-rewind.md](docs/retro-rewind.md).
+
+The optional Steam profile, zero-copy host library reuse, first login, RomM
+activation, testing, backup, and rollback are documented in
+[docs/steam-integration.md](docs/steam-integration.md).
