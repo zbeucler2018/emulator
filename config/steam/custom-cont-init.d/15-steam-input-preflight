@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
+""":"
+exec python3 "$0" "$@"
+":"""
 """Repair the known Black Flag Steam Input override before Steam starts."""
-
-from __future__ import annotations
 
 import argparse
 import os

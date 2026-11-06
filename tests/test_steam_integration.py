@@ -665,6 +665,21 @@ class DeploymentWiringTests(unittest.TestCase):
             )
             self.assertEqual(second.stdout, "")
 
+            # LinuxServer custom init scripts are invoked through bash rather
+            # than executed by their shebang. Exercise that exact path too.
+            localconfig.write_text(updated.replace(
+                '"UseSteamControllerConfig"        "2"',
+                '"UseSteamControllerConfig"        "0"',
+                1,
+            ))
+            through_bash = subprocess.run(
+                ["/bin/bash", str(preflight), str(localconfig)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertIn("restored Steam Input for Black Flag", through_bash.stdout)
+
     def test_black_flag_steam_input_preflight_is_safe_before_login(self) -> None:
         preflight = (
             ROOT
