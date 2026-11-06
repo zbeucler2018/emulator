@@ -369,6 +369,15 @@ Selkies; remapping makes Labwc import the current buffer. The check then exits;
 it is not a window-watching daemon, and game windows are not matched. This is a
 display workaround for upstream Wine bug 60557, not a launcher or DRM bypass.
 
+Black Flag must use Steam Input for Selkies' browser-created Xbox controller.
+The earlier native-XInput experiment left AppID `242050` with
+`UseSteamControllerConfig=0`, which makes Steam load `empty.vdf`: the Steam UI
+still responds to the controller, but the game receives no bindings. The
+setting now lives in the persistent `/srv/emulator/steam` configuration as
+`2`. On every container start, `15-steam-input-preflight` runs before Steam and
+changes only that known disabled override from `0` back to `2`. It does not
+alter other games or overwrite an already-enabled/custom controller setting.
+
 RomM cancellation first sends `SIGTERM` only to the selected AppID's reaper and
 matching children and gives them up to 30 seconds to exit. This is a best-effort
 graceful request; Steam has no documented per-AppID command equivalent to the

@@ -5,6 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -598,6 +600,89 @@ class BrokerTests(unittest.TestCase):
 
 
 class DeploymentWiringTests(unittest.TestCase):
+    def test_black_flag_steam_input_preflight_repairs_only_disabled_target(self) -> None:
+        preflight = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "15-steam-input-preflight"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            localconfig = Path(temporary) / "localconfig.vdf"
+            localconfig.write_text(
+                '''"UserLocalConfigStore"
+{
+    "WebStorage"
+    {
+        "apps"
+        {
+            "242050"
+            {
+                "Playtime"        "213"
+            }
+        }
+    }
+    "apps"
+    {
+        "242050"
+        {
+            "UseSteamControllerConfig"        "0"
+            "CDDialog"        "1"
+        }
+        "413080"
+        {
+            "UseSteamControllerConfig"        "0"
+        }
+    }
+}
+'''
+            )
+
+            completed = subprocess.run(
+                [sys.executable, str(preflight), str(localconfig)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            updated = localconfig.read_text()
+            self.assertIn("restored Steam Input for Black Flag", completed.stdout)
+            self.assertIn(
+                '"242050"\n        {\n            "UseSteamControllerConfig"        "2"',
+                updated,
+            )
+            self.assertIn(
+                '"413080"\n        {\n            "UseSteamControllerConfig"        "0"',
+                updated,
+            )
+
+            second = subprocess.run(
+                [sys.executable, str(preflight), str(localconfig)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(second.stdout, "")
+
+    def test_black_flag_steam_input_preflight_is_safe_before_login(self) -> None:
+        preflight = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "15-steam-input-preflight"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            missing = Path(temporary) / "localconfig.vdf"
+            subprocess.run(
+                [sys.executable, str(preflight), str(missing)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertFalse(missing.exists())
+
     def test_compose_exposes_matching_32_bit_nvidia_vulkan_driver(self) -> None:
         compose = (ROOT / "docker-compose.yml").read_text()
         for library in (
@@ -672,6 +757,14 @@ class DeploymentWiringTests(unittest.TestCase):
         self.assertIn('name="UnSnap"', init)
         self.assertIn('name="ResizeTo" width="1918" height="1078"', init)
         self.assertIn("romm-ubisoft-connect-redraw", init)
+        preflight = (
+            ROOT
+            / "config"
+            / "steam"
+            / "custom-cont-init.d"
+            / "15-steam-input-preflight"
+        )
+        self.assertTrue(preflight.stat().st_mode & 0o111)
 
     def test_selkies_uinput_node_is_private_to_the_desktop_user(self) -> None:
         init = (
