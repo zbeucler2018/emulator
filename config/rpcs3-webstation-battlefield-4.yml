@@ -1,0 +1,8 @@
+# Battlefield 4 (NPUB31148) compatibility profile.
+# Frostbite uses tiled RSX memory for gameplay rendering. Detiling plus color
+# buffer synchronization avoids the worst raw tiled-memory corruption.
+# Keep this title-specific because these accuracy options reduce performance.
+Video:
+  Write Color Buffers: true
+  Read Color Buffers: true
+  Handle RSX Memory Tiling: true

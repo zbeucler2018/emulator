@@ -1,0 +1,9 @@
+# Battlefield 3 (NPUB30742) compatibility profile.
+# BF3's upstream issue recommends synchronizing all four RSX buffer paths for
+# its rainbow/split-screen defect. Memory detiling remains disabled because it
+# caused more severe block corruption on this host.
+Video:
+  Write Color Buffers: true
+  Read Color Buffers: true
+  Write Depth Buffer: true
+  Read Depth Buffer: true

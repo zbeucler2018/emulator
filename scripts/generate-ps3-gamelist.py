@@ -39,6 +39,10 @@ TITLE_OVERRIDES = {
         "Call of Duty: Black Ops",
         "NPUB30584",
     ),
+    "digital_games/Battlefield 4 (NPUB31148).pkg": (
+        "Battlefield 4",
+        "NPUB31148",
+    ),
 }
 
 # Offline presentation metadata for the titles currently verified in this
@@ -47,6 +51,24 @@ TITLE_OVERRIDES = {
 # All values are local gamelist fields and can be replaced by a configured
 # online provider later.
 METADATA_OVERRIDES = {
+    "BLUS30517": {
+        "desc": "A modern military first-person shooter following a squad of renegade soldiers through a campaign of destruction, alongside large-scale vehicle-based multiplayer.",
+        "releasedate": "20100302T000000",
+        "developer": "DICE",
+        "publisher": "Electronic Arts",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Battlefield",
+        "players": "1-24",
+    },
+    "NPUB31148": {
+        "desc": "A modern military first-person shooter featuring a globe-spanning campaign and large multiplayer battles with infantry, vehicles, and destructible environments.",
+        "releasedate": "20131029T000000",
+        "developer": "DICE",
+        "publisher": "Electronic Arts",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Battlefield",
+        "players": "1-24",
+    },
     "BLUS30537": {
         "desc": "Ezio Auditore builds a new Assassin brotherhood in Rome while fighting the Borgia and uncovering another piece of the conflict between Assassins and Templars.",
         "releasedate": "20101116T000000",
