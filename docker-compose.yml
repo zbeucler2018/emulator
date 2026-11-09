@@ -91,10 +91,11 @@ services:
   # romm-broker, and the supported emulators; it is not a replacement for
   # RomM's existing EmulatorJS player.
   romm-webstation:
-    # Thin local derivative of the pinned WebStation v0.15.1-ls40 image. It
-    # adds Wine only; all emulator, Selkies and broker components remain the
-    # upstream image versions recorded in the Dockerfile.
-    image: emulator-webstation-infinity-blade:0.1.0
+    # Battlefield experiment: keep this image tag separate from the normal
+    # WebStation derivative so building the branch cannot replace the image
+    # used by the running main/Steam-feature setup. The Dockerfile pins the
+    # exact experimental RPCS3 artifact and retains the existing Wine changes.
+    image: emulator-webstation-battlefield:0.1.0
     build:
       context: .
       dockerfile: docker/webstation-infinity-blade.Dockerfile

@@ -1,6 +1,35 @@
 ARG WEBSTATION_IMAGE=lscr.io/linuxserver/webstation@sha256:eec9b7bb0571da05534daa08edde5ccf0e212a635794f29ea5f39f1c70a7ffb5
 FROM ${WEBSTATION_IMAGE}
 
+# Battlefield 3/4 currently expose an RPCS3 main-memory tiling bug as displaced
+# tiles, bands, and mosaic-like corruption during gameplay.  Use the successful
+# Linux x86-64 CI artifact from the exact experimental RPCS3 commit below.  The
+# artifact is fetched through nightly.link because GitHub requires an API token
+# for direct Actions-artifact downloads; its bytes are still verified against
+# the SHA-256 digest published by GitHub for artifact 13576025915.
+#
+# Upstream PR: https://github.com/RPCS3/rpcs3/pull/19785
+# Head commit: 8cb131662a1dabb4b7086a771ee4730e461efa5b
+ARG RPCS3_BATTLEFIELD_ARTIFACT_URL=https://nightly.link/RPCS3/rpcs3/actions/artifacts/13576025915.zip
+ARG RPCS3_BATTLEFIELD_ARTIFACT_SHA256=4d0b426248d1014268cb3c78ce879ce45a00e4468fa251cd072d180652ed17af
+ARG RPCS3_BATTLEFIELD_APPIMAGE=rpcs3-v0.0.43-20572-3aa5b10e_linux64.AppImage
+RUN set -eux; \
+    work_dir=/tmp/rpcs3-battlefield; \
+    artifact="$work_dir/artifact.zip"; \
+    mkdir -p "$work_dir"; \
+    curl -fsSL -o "$artifact" "$RPCS3_BATTLEFIELD_ARTIFACT_URL"; \
+    echo "$RPCS3_BATTLEFIELD_ARTIFACT_SHA256  $artifact" | sha256sum -c -; \
+    unzip -q "$artifact" -d "$work_dir"; \
+    test -f "$work_dir/$RPCS3_BATTLEFIELD_APPIMAGE"; \
+    chmod +x "$work_dir/$RPCS3_BATTLEFIELD_APPIMAGE"; \
+    cd "$work_dir"; \
+    "./$RPCS3_BATTLEFIELD_APPIMAGE" --appimage-extract >/dev/null; \
+    test "$(readlink squashfs-root)" = "./AppDir"; \
+    test -x AppDir/usr/bin/rpcs3; \
+    rm -rf /opt/rpcs3; \
+    mv AppDir /opt/rpcs3; \
+    rm -rf "$work_dir"
+
 # Selkies 2.1 natively maps a token's ordered slot list to that page's local
 # Gamepad API devices. WebStation Broker PR #134 exposes that support in its
 # room and token model; pin the exact upstream commit rebased onto v0.15.3.
