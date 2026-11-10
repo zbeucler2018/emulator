@@ -256,8 +256,6 @@ services:
       TZ: America/New_York
       TITLE: Steam on box
       SUBFOLDER: /steam/
-      CUSTOM_USER: steam
-      FILE__PASSWORD: /run/secrets/steam_web_password
       # Tailscale-friendly initial profile: one H.264/NVENC WebSocket stream
       # at a fixed 1080p60 canvas. WebRTC remains an opt-in validation step.
       AUTO_GPU: nvidia
@@ -304,7 +302,6 @@ services:
       - /home/service/snap/steam/common/.local/share/Steam/steamapps:/mnt/host-steam/steamapps:rw
       # RomM sees these descriptors at the same absolute container path.
       - /mnt/games/Sophia/games/Steam:/romm/library/roms/Steam:ro
-      - /srv/emulator/steam-web-password:/run/secrets/steam_web_password:ro
       # Docker's NVIDIA CDI spec currently injects only the 64-bit driver
       # libraries on box. Proton needs the matching 32-bit Vulkan driver for
       # older games such as Black Flag; without it DXVK silently uses llvmpipe.
@@ -344,8 +341,7 @@ services:
       test:
         - CMD-SHELL
         - >-
-          curl -fsS -u "$${CUSTOM_USER}:$$(cat /run/secrets/steam_web_password)"
-          http://127.0.0.1:3000/steam/ >/dev/null &&
+          curl -fsS http://127.0.0.1:3000/steam/ >/dev/null &&
           curl -fsS http://127.0.0.1:8000/health >/dev/null &&
           pgrep -u abc -x steam >/dev/null
       interval: 30s

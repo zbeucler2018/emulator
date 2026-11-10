@@ -11,7 +11,7 @@ container is running.
 Validation on `box` on 2026-11-01 reached the following boundary:
 
 - **Standalone Steam:** verified. The pinned container is healthy; its
-  authenticated Selkies desktop rendered a live Vulkan `vkcube` at 1920x1080
+  tailnet-only Selkies desktop rendered a live Vulkan `vkcube` at 1920x1080
   and 60 FPS over WebSockets. The cube used the NVIDIA RTX 4070 Ti, not
   llvmpipe. NVENC advertised H.264, H.265, and AV1 support; this deployment
   deliberately starts with H.264.
@@ -51,7 +51,7 @@ RomM / Steam platform and .steam descriptor
     -> private legacy broker at steam:8000
     -> validated AppID -> running Steam client (`steam -applaunch APPID`)
     -> independent LinuxServer Steam desktop and Proton runtime
-    -> authenticated Selkies browser session at /steam/
+    -> tailnet-only Selkies browser session at /steam/
 
 Host Steam library (read/write; container is the only active Steam client)
     -> copied manifests + zero-copy installation links
@@ -98,7 +98,6 @@ Steam library and remote-launch extension.
 | Existing Steam manifests and game payloads | `/home/service/snap/steam/common/.local/share/Steam/steamapps` | read/write at `/mnt/host-steam/steamapps` |
 | Container Steam home, login, Cloud data, caches, local saves, Proton prefixes | `/srv/emulator/steam` | read/write `/config` |
 | RomM AppID descriptors | `/mnt/games/Sophia/games/Steam` | read-only |
-| Browser Basic Auth password | `/srv/emulator/steam-web-password` | read-only file secret |
 
 The discovered game installations are:
 
@@ -207,18 +206,18 @@ Like WebStation, Steam is an independent service on the existing Compose
 network, with a distinct localhost-only HTTP port and path-based Tailscale
 Serve route. It does not use host networking or a separately published broker.
 The browser port is bound only to `127.0.0.1:3020`; unauthenticated local
-requests return HTTP 401. Basic Auth remains intentional because Tailscale
-limits who can reach the host but does not apply the RomM login session to this
-standalone desktop. The password is generated locally in a mode-0600 file and
-is never present in Compose or Git. The broker is Compose-network-only. Sudo,
+requests succeed, but they cannot reach the port from another host. The only
+remote route is Tailscale Serve, which is restricted to authenticated devices
+on this tailnet. The redundant LinuxServer Basic Auth prompt is disabled so
+RomM can open the embedded stream without a second login. The broker remains
+Compose-network-only and independently authenticates launch requests. Sudo,
 Selkies command execution, browser file transfer, printing, webcam access, and
 the file/application sidebars are disabled; the browser menu exposes only
 Steam. LinuxServer's internal `foot -e steam` wrapper must remain executable,
 so the more sweeping `HARDEN_DESKTOP` toggle cannot be used without breaking
 Steam startup.
 
-Publish the already-configured service to the tailnet after entering the host
-sudo password:
+The service is published to the tailnet with:
 
 ```bash
 sudo tailscale serve --https=443 --set-path=/steam --bg \
@@ -226,19 +225,11 @@ sudo tailscale serve --https=443 --set-path=/steam --bg \
 sudo tailscale serve status
 ```
 
-The first command could not be applied by this unattended run because sudo
-requires an interactive password. It does not alter the existing `/`,
-`/streaming`, or `/metrics` handlers. Use Tailscale **Serve**, never Funnel.
-The expected browser URL is `https://box.tail71340c.ts.net/steam/` and it has a
-second Basic Auth boundary inside the tailnet. Keep the trailing slash on the
-proxy target: the container root is only the stock nginx page, while Selkies
-is served from `/steam/`.
-
-Retrieve the generated browser password only from a trusted shell on `box`:
-
-```bash
-cat /srv/emulator/steam-web-password
-```
+This route is already active alongside the existing `/`, `/streaming`, and
+`/metrics` handlers. Use Tailscale **Serve**, never Funnel. The expected browser
+URL is `https://box.tail71340c.ts.net/steam/`; the tailnet identity is its
+access boundary. Keep the trailing slash on the proxy target: the container
+root is only the stock nginx page, while Selkies is served from `/steam/`.
 
 ## Authentication and RomM activation
 
@@ -246,18 +237,17 @@ No Steam password or Steam Guard code has been requested, captured, or stored
 by this work. Complete the following when no RomM/WebStation game session is
 active:
 
-1. Apply the Tailscale Serve command above.
-2. Open `https://box.tail71340c.ts.net/steam/`, authenticate with user `steam`
-   and the local file password, then sign into the visible Steam client. Enter
-   Steam Guard only into Steam's own UI. Allow Steam to remember this machine
-   if that matches the account's security policy. Do this before launching a
-   Steam title from RomM. The broker checks the live Steam client account ID
-   and rejects unsigned-in launches without reserving the Steam session.
-3. In Steam Settings, force a Proton version for a small test game. LinuxServer
+1. Open `https://box.tail71340c.ts.net/steam/`, then sign into the visible Steam
+   client. Enter Steam Guard only into Steam's own UI. Allow Steam to remember
+   this machine if that matches the account's security policy. Do this before
+   launching a Steam title from RomM. The broker checks the live Steam client
+   account ID and rejects unsigned-in launches without reserving the Steam
+   session.
+2. In Steam Settings, force a Proton version for a small test game. LinuxServer
    recommends Proton for games in this image, and it provides a consistent
    launch path for the kernel-backed virtual Xbox controller. Do not enable a
    large download.
-4. At a safe time, activate the new RomM configuration without touching the
+3. At a safe time, activate the new RomM configuration without touching the
    other containers:
 
    ```bash
@@ -351,8 +341,8 @@ docker exec -e XDG_RUNTIME_DIR=/config/.XDG -e WAYLAND_DISPLAY=wayland-1 \
   'timeout -s TERM 5 vkcube --wsi wayland --gpu_number 0'
 ```
 
-The expected unauthenticated HTTP result is `401`, and `findmnt` must include
-`rw`. These checks do not start a game.
+The expected localhost HTTP result is `200`, and `findmnt` must include `rw`.
+These checks do not start a game.
 
 Ubisoft Connect 175 has a Wine 11/X11 regression that can leave its CEF window
 permanently white even though the client remains responsive. The Steam init
