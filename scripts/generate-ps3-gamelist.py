@@ -39,6 +39,14 @@ TITLE_OVERRIDES = {
         "Call of Duty: Black Ops",
         "NPUB30584",
     ),
+    "digital_games/Battlefield 4 (NPUB31148).pkg": (
+        "Battlefield 4",
+        "NPUB31148",
+    ),
+    "digital_games/Shadow of the Colossus (NPUA80677).pkg": (
+        "Shadow of the Colossus",
+        "NPUA80677",
+    ),
 }
 
 # Offline presentation metadata for the titles currently verified in this
@@ -47,6 +55,51 @@ TITLE_OVERRIDES = {
 # All values are local gamelist fields and can be replaced by a configured
 # online provider later.
 METADATA_OVERRIDES = {
+    "NPUA80677": {
+        "desc": "A young warrior named Wander journeys across a forbidden land and confronts sixteen immense colossi in hopes of restoring a lost soul.",
+        "releasedate": "20110927T000000",
+        "developer": "Team Ico, Bluepoint Games",
+        "publisher": "Sony Computer Entertainment",
+        "genre": "Action, Adventure, Puzzle",
+        "family": "Ico",
+        "players": "1",
+    },
+    "BLUS30517": {
+        "desc": "A modern military first-person shooter following a squad of renegade soldiers through a campaign of destruction, alongside large-scale vehicle-based multiplayer.",
+        "releasedate": "20100302T000000",
+        "developer": "DICE",
+        "publisher": "Electronic Arts",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Battlefield",
+        "players": "1-24",
+    },
+    "BLUS30087": {
+        "desc": "An open-world fantasy role-playing game set in Cyrodiil. This Game of the Year edition includes the Knights of the Nine and Shivering Isles expansions.",
+        "releasedate": "20071016T000000",
+        "developer": "Bethesda Game Studios",
+        "publisher": "Bethesda Softworks",
+        "genre": "Action, Role-playing, Open world, Fantasy",
+        "family": "The Elder Scrolls",
+        "players": "1",
+    },
+    "BLUS30515": {
+        "desc": "Batman is trapped inside Arkham Asylum after the Joker seizes control, combining stealth, detective work, exploration, and free-flow combat. This edition includes additional challenge content.",
+        "releasedate": "20100511T000000",
+        "developer": "Rocksteady Studios",
+        "publisher": "Warner Bros. Interactive Entertainment",
+        "genre": "Action, Adventure, Stealth, Superhero",
+        "family": "Batman: Arkham",
+        "players": "1",
+    },
+    "NPUB31148": {
+        "desc": "A modern military first-person shooter featuring a globe-spanning campaign and large multiplayer battles with infantry, vehicles, and destructible environments.",
+        "releasedate": "20131029T000000",
+        "developer": "DICE",
+        "publisher": "Electronic Arts",
+        "genre": "Action, First-person shooter, Modern military",
+        "family": "Battlefield",
+        "players": "1-24",
+    },
     "BLUS30537": {
         "desc": "Ezio Auditore builds a new Assassin brotherhood in Rome while fighting the Borgia and uncovering another piece of the conflict between Assassins and Templars.",
         "releasedate": "20101116T000000",

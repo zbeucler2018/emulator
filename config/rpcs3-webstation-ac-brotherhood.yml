@@ -1,0 +1,7 @@
+# Assassin's Creed: Brotherhood (BLUS30537) compatibility profile.
+# Brotherhood is one of the remaining titles that can hang with the PPU LLVM
+# recompiler. Keep the interpreter workaround title-specific so other PS3
+# games retain WebStation's faster global LLVM setting.
+Core:
+  PPU Decoder: Interpreter (static)
+  PPU Accurate Non-Java Mode: true
