@@ -1,0 +1,10 @@
+#!/usr/bin/with-contenv bash
+set -euo pipefail
+
+# RomM normalizes a path-only stream host by removing its trailing slash.
+# Give Selkies an explicit base so /steam and /steam/ resolve the same assets.
+index=/usr/share/selkies/web/index.html
+base='<base href="/steam/">'
+if ! grep -Fq "$base" "$index"; then
+  sed -i "s#<head>#<head>$base#" "$index"
+fi

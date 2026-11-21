@@ -1,0 +1,50 @@
+#!/usr/bin/with-contenv bash
+set -euo pipefail
+
+# The kernel-created event node keeps box's host input-group GID. LinuxServer's
+# abc privilege drop rebuilds supplementary groups from /etc/group, so make the
+# numeric group visible there before Selkies starts. The name is intentionally
+# resolved rather than assumed because GID 995 is named differently in-image.
+input_group="$(getent group 995 | cut -d: -f1)"
+if [[ -z "$input_group" ]]; then
+  groupadd --gid 995 host-input
+  input_group=host-input
+fi
+usermod --append --groups "$input_group" abc
+
+# Give only the unprivileged desktop user a private node for the host uinput
+# driver. The container never receives the host's physical /dev/input tree.
+if [[ ! -e /dev/uinput ]]; then
+  mknod /dev/uinput c 10 223
+fi
+chown abc:abc /dev/uinput
+chmod 0600 /dev/uinput
+
+# Docker's private /dev does not receive nodes created through uinput. Reserve
+# the bounded range used by Selkies' browser pads and Steam Input's virtual
+# outputs before either creates them. The base
+# image also creates touch/pen devices in this range before custom init runs;
+# skip every minor the host already owns so none of those unrelated devices is
+# exposed, while still staging the free minors Selkies will allocate later.
+for index in $(seq 21 28); do
+  if [[ -e "/sys/class/input/event$index" ]]; then
+    echo "Skipping occupied host input node event$index"
+    continue
+  fi
+  node="/dev/input/event$index"
+  rm -f "$node"
+  mknod "$node" c 13 "$((64 + index))"
+  chown abc:abc "$node"
+  chmod 0600 "$node"
+done
+for index in $(seq 1 8); do
+  if [[ -e "/sys/class/input/js$index" ]]; then
+    echo "Skipping occupied host input node js$index"
+    continue
+  fi
+  node="/dev/input/js$index"
+  rm -f "$node"
+  mknod "$node" c 13 "$index"
+  chown abc:abc "$node"
+  chmod 0600 "$node"
+done

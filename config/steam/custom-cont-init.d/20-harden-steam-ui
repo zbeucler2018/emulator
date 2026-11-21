@@ -1,0 +1,26 @@
+#!/usr/bin/with-contenv bash
+set -euo pipefail
+
+# The upstream Steam wrapper needs `foot` internally.  Replace labwc's menu
+# instead of disabling the terminal binary, so no terminal launcher is exposed
+# through the streamed desktop while Steam itself can still start.
+install -o abc -g abc -m 0644 \
+  /opt/romm/config/steam-menu.xml \
+  /config/.config/labwc/menu.xml
+
+# Ubisoft Connect 175 can leave its CEF surface permanently white under the
+# Wine version in Proton 11/Experimental. An initial geometry change makes CEF
+# present the surface normally (Wine bug 60557). Keep this after the upstream
+# catch-all Maximize rule and scope it to the launcher's main window, so the
+# game window itself is untouched.
+if ! grep -q 'romm-ubisoft-connect-redraw' /config/.config/labwc/rc.xml; then
+  sed -i '/<\/windowRules>/i\    <!-- romm-ubisoft-connect-redraw -->\n    <windowRule title="Ubisoft Connect">\n      <action name="UnSnap" />\n      <action name="ResizeTo" width="1918" height="1078" />\n      <action name="MoveTo" x="1" y="1" />\n    </windowRule>' \
+    /config/.config/labwc/rc.xml
+fi
+
+# Keep the controller-oriented library visible while a broker-launched game is
+# completing its Steam/Proton startup instead of showing the desktop Store UI.
+printf '%s\n' '/usr/bin/wrapped-steam -gamepadui' \
+  > /config/.config/labwc/autostart
+chown abc:abc /config/.config/labwc/autostart
+chmod 0644 /config/.config/labwc/autostart

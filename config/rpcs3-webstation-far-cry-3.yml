@@ -1,0 +1,16 @@
+# Far Cry 3 (NPUB30825) compatibility profile.
+#
+# Write Color Buffers is required for the game to render correctly. Host GPU
+# labels reduce vegetation flicker, while delaying each odd MFC command fixes
+# the texture-upload race that otherwise produces random black terrain and
+# missing geometry on every boot.
+Core:
+  SPU Decoder: Recompiler (LLVM)
+  MFC Commands Shuffling Limit: 1
+  # RPCS3's default of 30 can collapse Far Cry performance. The maintainer
+  # recommends 10 as the first lower value to try for this game.
+  MFC Shuffle Instructions Decrementer: 10
+
+Video:
+  Write Color Buffers: true
+  Allow Host GPU Labels: true
