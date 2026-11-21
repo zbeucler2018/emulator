@@ -208,6 +208,9 @@ services:
       # Brotherhood can hang under the PPU LLVM recompiler. Mirror the
       # title-specific interpreter workaround from the working host RPCS3.
       - ./config/rpcs3-webstation-ac-brotherhood.yml:/config/.config/rpcs3/custom_configs/config_BLUS30537.yml:ro
+      # Far Cry 3 requires color-buffer writes plus delayed MFC commands to
+      # avoid the game's random black-texture and missing-geometry race.
+      - ./config/rpcs3-webstation-far-cry-3.yml:/config/.config/rpcs3/custom_configs/config_NPUB30825.yml:ro
       # The desktop icon uses the same shim, so Miis created in an admin
       # desktop session enter the shared database before the next game launch.
       - ./config/webstation/dolphin-emu.desktop:/config/Desktop/dolphin-emu.desktop:ro
